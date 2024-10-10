@@ -555,4 +555,25 @@ ObjData *gf3d_obj_merge(ObjData *ObjA,GFC_Vector3D offsetA,ObjData *ObjB,GFC_Vec
     return ObjNew;
 }
 
+
+Uint8 gf3d_obj_line_test(ObjData *obj, GFC_Edge3D e, GFC_Vector3D *contact) {
+    int i;
+    Uint32 index;
+    GFC_Triangle3D t;
+    if (!obj) return 0;
+    if (!obj->outFace) return 0;
+    if (!obj->faceVertices) return 0;
+
+    for (i = 0; i < obj->face_count; i++) {
+        index = obj->outFace[i].verts[0];
+        t.a = obj->faceVertices[index].vertex;
+        index = obj->outFace[i].verts[1];
+        t.b = obj->faceVertices[index].vertex;
+        index = obj->outFace[i].verts[2];
+        t.c = obj->faceVertices[index].vertex;
+        if (gfc_trigfc_angle_edge_test(e, t, contact)) return 1;
+    }
+    return 0;
+}
+
 /*eol@eof*/

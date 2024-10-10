@@ -27,6 +27,13 @@ layout(binding = 0) uniform UniformBufferObject
 {
     MeshUBO         mesh;
     MaterialUBO     material;   //this may become an array
+    vec4            lightPos;
+    vec4            lightDir;
+    vec4            lightColor;
+    float           angle;
+    float           brightness;
+    float           falloff;
+    float           padding;
 } ubo;
 
 out gl_PerVertex

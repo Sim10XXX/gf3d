@@ -72,14 +72,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>..</OutDir>
-    <IncludePath>D:\git\libs\SDL2_image-2.8.2\include;D:\git\libs\SDL2_mixer-2.8.0\include;D:\git\libs\SDL2_ttf-2.22.0\include;D:\git\libs\SDL2-2.30.6\include;D:\git\libs\VulkanSDK\Include;D:\git\gf3d\gfc\simple_logger\include;D:\git\gf3d\gfc\simple_json\include;D:\git\gf3d\gfc\include;D:\git\gf3d\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\git\libs\SDL2_image-2.8.2\lib\x64;D:\git\libs\SDL2_mixer-2.8.0\lib\x64;D:\git\libs\SDL2_ttf-2.22.0\lib\x64;D:\git\libs\SDL2-2.30.6\lib\x64;D:\git\libs\VulkanSDK\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\simple_json\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\simple_logger\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\include;C:\Users\Deoxm\Desktop\HW\lib\Vulkan SDK\Include;C:\Users\Deoxm\Desktop\HW\lib\SDL2-2.30.7\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_ttf-2.22.0\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_image-2.8.2\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_mixer-2.8.0\include</IncludePath>
+    <LibraryPath>C:\Users\Deoxm\Desktop\HW\lib\SDL2_image-2.8.2\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2_mixer-2.8.0\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2_ttf-2.22.0\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2-2.30.7\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\Vulkan SDK\Lib;$(LibraryPath)</LibraryPath>
     <TargetName>gf3d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>..</OutDir>
-    <IncludePath>D:\git\libs\SDL2_image-2.8.2\include;D:\git\libs\SDL2_mixer-2.8.0\include;D:\git\libs\SDL2_ttf-2.22.0\include;D:\git\libs\SDL2-2.30.6\include;D:\git\libs\VulkanSDK\Include;D:\git\gf3d\gfc\simple_logger\include;D:\git\gf3d\gfc\simple_json\include;D:\git\gf3d\gfc\include;D:\git\gf3d\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\git\libs\SDL2_image-2.8.2\lib\x64;D:\git\libs\SDL2_mixer-2.8.0\lib\x64;D:\git\libs\SDL2_ttf-2.22.0\lib\x64;D:\git\libs\SDL2-2.30.6\lib\x64;D:\git\libs\VulkanSDK\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\simple_json\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\simple_logger\include;C:\Users\Deoxm\Desktop\HW\IT 466\IT 466 Project\gf3d\gfc\include;C:\Users\Deoxm\Desktop\HW\lib\Vulkan SDK\Include;C:\Users\Deoxm\Desktop\HW\lib\SDL2-2.30.7\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_ttf-2.22.0\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_image-2.8.2\include;C:\Users\Deoxm\Desktop\HW\lib\SDL2_mixer-2.8.0\include</IncludePath>
+    <LibraryPath>C:\Users\Deoxm\Desktop\HW\lib\SDL2_image-2.8.2\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2_mixer-2.8.0\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2_ttf-2.22.0\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\SDL2-2.30.7\lib\x64;C:\Users\Deoxm\Desktop\HW\lib\Vulkan SDK\Lib;$(LibraryPath)</LibraryPath>
     <TargetName>gf3d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -116,6 +116,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>Default</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,8 +131,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>Default</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,6 +172,8 @@
     <ClCompile Include="..\gfc\src\gfc_types.c" />
     <ClCompile Include="..\gfc\src\gfc_vector.c" />
     <ClCompile Include="..\gfc\src\miniz.c" />
+    <ClCompile Include="..\src\block.c" />
+    <ClCompile Include="..\src\entity.c" />
     <ClCompile Include="..\src\game.c" />
     <ClCompile Include="..\src\gf2d_actor.c" />
     <ClCompile Include="..\src\gf2d_draw.c" />
@@ -195,6 +201,7 @@
     <ClCompile Include="..\src\gf3d_validation.c" />
     <ClCompile Include="..\src\gf3d_vgraphics.c" />
     <ClCompile Include="..\src\gf3d_vqueues.c" />
+    <ClCompile Include="..\src\player.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\gfc\include\gfc_actions.h" />
@@ -226,6 +233,8 @@
     <ClInclude Include="..\gfc\simple_json\include\simple_json_types.h" />
     <ClInclude Include="..\gfc\simple_json\include\simple_json_value.h" />
     <ClInclude Include="..\gfc\simple_logger\include\simple_logger.h" />
+    <ClInclude Include="..\include\block.h" />
+    <ClInclude Include="..\include\entity.h" />
     <ClInclude Include="..\include\gf2d_actor.h" />
     <ClInclude Include="..\include\gf2d_draw.h" />
     <ClInclude Include="..\include\gf2d_font.h" />
@@ -252,6 +261,22 @@
     <ClInclude Include="..\include\gf3d_validation.h" />
     <ClInclude Include="..\include\gf3d_vgraphics.h" />
     <ClInclude Include="..\include\gf3d_vqueues.h" />
+    <ClInclude Include="..\include\lights.h" />
+    <ClInclude Include="..\include\player.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\default.frag" />
+    <None Include="..\shaders\default.vert" />
+    <None Include="..\shaders\frag.spv" />
+    <None Include="..\shaders\sky.frag" />
+    <None Include="..\shaders\sky.vert" />
+    <None Include="..\shaders\sky_frag.spv" />
+    <None Include="..\shaders\sky_vert.spv" />
+    <None Include="..\shaders\sprite.frag" />
+    <None Include="..\shaders\sprite.vert" />
+    <None Include="..\shaders\sprite_frag.spv" />
+    <None Include="..\shaders\sprite_vert.spv" />
+    <None Include="..\shaders\vert.spv" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

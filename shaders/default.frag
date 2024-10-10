@@ -27,6 +27,13 @@ layout(binding = 0) uniform UniformBufferObject
 {
     MeshUBO         mesh;
     MaterialUBO     material;   //this may become an array
+    vec4            lightPos;
+    vec4            lightDir;
+    vec4            lightColor;
+    float           angle;
+    float           brightness;
+    float           falloff;
+    float           padding;
 }ubo;
 
 layout(binding = 1) uniform sampler2D texSampler;
@@ -43,10 +50,15 @@ void main()
     vec4 surfaceColor = texture(texSampler, fragTexCoord);
     vec3 normal = fragNormal;
     vec3 surfaceToCamera = normalize(ubo.mesh.camera.xyz - position);
-    
+    vec3 surfaceToLight = -normalize(ubo.lightDir.xyz);
+
     surfaceColor.xyz *= ubo.material.diffuse.xyz;
     surfaceColor.w *= ubo.material.diffuse.w * ubo.material.transparency;
 
+    float diffuseCoefficient = max(0.0, dot(normal, surfaceToLight));
+    vec3 diffuse = diffuseCoefficient * surfaceColor.rgb * ubo.lightColor.xyz;
+
     outColor = surfaceColor;
+    outColor.xyz += diffuse.xyz;
 }
 

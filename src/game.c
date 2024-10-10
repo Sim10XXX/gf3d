@@ -25,6 +25,10 @@
 #include "gf3d_texture.h"
 #include "gf3d_draw.h"
 
+#include "entity.h"
+#include "player.h"
+#include "block.h"
+
 extern int __DEBUG;
 
 static int _done = 0;
@@ -52,12 +56,31 @@ void draw_origin()
         gfc_vector3d(0,0,0),gfc_vector3d(0,0,0),gfc_vector3d(1,1,1),0.1,gfc_color(0,0,1,1));
 }
 
+void dino_think(Entity *self) {
+    GFC_Vector2D w;
+    float m = 0.5;
+    const Uint8* keys;
+
+    keys = SDL_GetKeyboardState(NULL);
+    if (!self) return;
+    if (keys[SDL_SCANCODE_UP]) {
+    //if (gfc_input_key_down('w')) {
+        w = gfc_vector2d_from_angle(self->rotation.z);
+        self->position.x += w.x * m;
+        self->position.y += w.y * m;
+        //slog("yaaa");
+    }
+    //self->rotation.x+= 0.01;
+    //slog("Thinking is happening");
+}
 
 int main(int argc,char *argv[])
 {
     //local variables
     Model *sky,*dino;
     GFC_Matrix4 skyMat,dinoMat;
+
+    Entity *ent;
     //initializtion    
     parse_arguments(argc,argv);
     init_logger("gf3d.log",0);
@@ -93,8 +116,19 @@ int main(int argc,char *argv[])
     
     gf3d_camera_enable_free_look(1);
     //windows
+    entity_system_init(1000);
+
+    ent = spawn_player();
+    spawn_block();
+    //if (ent)
+    //{
+    //    ent->model = dino;
+    //    ent->think = player_think;
+        //ent->position = gfc_vector3d(0, 0, 0);
+    //}
 
     // main game loop    
+    
     while(!_done)
     {
         gfc_input_update();
@@ -105,16 +139,20 @@ int main(int argc,char *argv[])
         gf3d_camera_update_view();
         gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
 
-        gf3d_vgraphics_render_start();
+        entity_think_all();
+        entity_update_all();
 
+        gf3d_vgraphics_render_start();
+        
+        entity_draw_all();
             //3D draws
         
                 gf3d_model_draw_sky(sky,skyMat,GFC_COLOR_WHITE);
-                gf3d_model_draw(
+                /*gf3d_model_draw(
                     dino,
                     dinoMat,
                     GFC_COLOR_WHITE,
-                    0);
+                    0);*/
                 draw_origin();
             //2D draws
                 gf2d_mouse_draw();

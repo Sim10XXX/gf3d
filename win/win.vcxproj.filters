@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{8e30cfea-496c-4ada-bb89-4c4fec931926}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\game.c">
@@ -175,6 +178,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\gfc\simple_logger\src\simple_logger.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\entity.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\player.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\block.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -344,5 +356,55 @@
     <ClInclude Include="..\gfc\simple_logger\include\simple_logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\entity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\block.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\lights.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\default.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\default.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\frag.spv">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sky.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sky.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sky_frag.spv">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sky_vert.spv">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sprite.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sprite.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sprite_frag.spv">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\sprite_vert.spv">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\shaders\vert.spv">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

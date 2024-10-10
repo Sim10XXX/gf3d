@@ -622,6 +622,10 @@ void gf3d_model_draw_index(
     gfc_matrix4_multiply(matrix,model->matrix,modelMat);
     
     uboData.mesh = gf3d_mesh_get_ubo(matrix,colorMod);
+
+    //uboData.lightPos = ;
+    uboData.light.lightDir = gfc_vector4d(0, 0, -1, 0);
+    uboData.light.lightColor = gfc_vector4d(1,1,1,1);
     
     if (model->material)
     {
