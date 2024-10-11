@@ -136,36 +136,40 @@ void player_update(Entity* self)
 	gf3d_camera_look_at(lookTarget, &camera);
 
 	//update wheel pos
-	GFC_Matrix4 playerMatrix, wheelMatrix, inplayerMatrix;
-	gfc_matrix4_from_vectors(
-		playerMatrix,
-		self->position,
-		self->rotation,
-		self->scale);
-	gfc_matrix4_from_vectors(
-		wheelMatrix,
-		pdata->wheelFL,
-		self->rotation,
-		self->scale);
+	GFC_Matrix4 playerMatrix, wheelMatrix; //inplayerMatrix;
+	GFC_Vector3D relativePos[4] = {
+		gfc_vector3d(-1, 2, 0),
+		gfc_vector3d(1, 2, 0),
+		gfc_vector3d(-1, -2, 0),
+		gfc_vector3d(1, -2, 0) };
 
-	gfc_matrix4_invert(
-		inplayerMatrix, 
-		playerMatrix);
+	//pdata->wheelFL = self->position;
 
-	gfc_matrix4_multiply(
-		wheelMatrix,
-		wheelMatrix,
-		inplayerMatrix);
+	GFC_Vector3D* wheel;
+	int i;
+	for (i = 0, wheel = &pdata->wheelFL; i < 4; i++, wheel++) {
+		gfc_matrix4_from_vectors(
+			playerMatrix,
+			self->position,
+			self->rotation,
+			self->scale);
+		gfc_matrix4_from_vectors(
+			wheelMatrix,
+			relativePos[i],
+			gfc_vector3d(0, 0, 0),
+			gfc_vector3d(1, 1, 1));
 
-	gfc_matrix4_translate(
-		wheelMatrix,
-		wheelMatrix,
-		gfc_vector3d(10,10,0));
+		gfc_matrix4_multiply(
+			wheelMatrix,
+			wheelMatrix,
+			playerMatrix);
 
-	gfc_matrix4_multiply(
-		wheelMatrix,
-		wheelMatrix,
-		playerMatrix);
+		gfc_matrix4_to_vectors(
+			wheelMatrix,
+			wheel,
+			NULL,
+			NULL);
+	}
 }
 
 int player_draw(Entity* self)
@@ -197,7 +201,7 @@ int player_draw(Entity* self)
 		gf3d_model_draw(
 			self->model,
 			matrix,
-			GFC_COLOR_RED,
+			gfc_color8(255,0,0,63),
 			0);
 	}
 	//slog("ya");
