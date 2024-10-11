@@ -1,0 +1,26 @@
+#ifndef __FORCE_H__
+#define __FORCE_H__
+
+#include "simple_logger.h"
+#include "gfc_matrix.h"
+#include "player.h"
+
+// The only physics object is the player, 
+// all forces that exist are ones that are affecting the player, 
+// any force that doesn't hit the center of gravity will apply rotational velocity
+
+typedef struct
+{
+	GFC_Vector3D	origin;			//The position of the force relative to the player
+	GFC_Vector3D	forceVector;	//The direction and magnitude as a vector, relative to the player
+}Force;
+
+/*
+* "move" a force along it's forceVector so that some part of the origin, either the x, y, or z is 0
+* I think this will be useful for calculating rotational velocity produced by a force
+*/
+void normalize_force(Force* force);
+
+void apply_force(Force force, playerData *pdata);
+
+#endif

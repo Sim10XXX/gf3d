@@ -4,20 +4,11 @@
 #include "gf3d_camera.h"
 #include "gfc_input.h"
 #include "entity.h"
+#include "player.h"
 
 #define friction 0.02
 
-typedef struct
-{
-	Uint8			cameraMode;
-	GFC_Vector3D	positionVelocity;
-	GFC_Vector3D	rotationVelocity;
-	//wheel positions xyz
-	GFC_Vector3D	wheelFL; //front left
-	GFC_Vector3D	wheelFR; //front right
-	GFC_Vector3D	wheelRL; //rear left
-	GFC_Vector3D	wheelRR; //rear right
-}playerData;
+
 
 
 

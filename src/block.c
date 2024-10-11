@@ -4,6 +4,8 @@
 
 #include "entity.h"
 
+#include "block.h"
+
 typedef struct
 {
 	float padding;
