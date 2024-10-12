@@ -5,6 +5,7 @@
 #include "gfc_input.h"
 #include "entity.h"
 #include "player.h"
+#include "force.h"
 
 #define friction 0.02
 
@@ -33,6 +34,8 @@ void player_think(Entity* self)
 	if (!self->data)return;
 	playerData* pdata = self->data;
 	GFC_Vector3D dv = {0};
+	Force force;
+
 	if (gfc_input_command_down("walkforward")) {
 		//pdata->positionVelocity.y += 0.01;
 
@@ -48,6 +51,13 @@ void player_think(Entity* self)
 	}
 
 	//entity_check_collision(self);
+
+	//Add gravity force
+	force.origin = gfc_vector3d(0, 1, 0);
+	force.forceVector = gfc_vector3d(0, 0, -0.001);
+
+	apply_force(force, pdata);
+	//pdata->rotationVelocity.x = 0.01;
 
 }
 //slog("position %f %f %f", self->position.x, self->position.y, self->position.z)
@@ -112,7 +122,7 @@ void player_update(Entity* self)
 	pdata = self->data;
 
 	move_player(self);
-	velocity_update(self);
+	//velocity_update(self);
 	//update_hitbox(self);
 	
 

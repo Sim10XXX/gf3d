@@ -12,8 +12,14 @@
 typedef struct
 {
 	GFC_Vector3D	origin;			//The position of the force relative to the player
-	GFC_Vector3D	forceVector;	//The direction and magnitude as a vector, relative to the player
+	GFC_Vector3D	forceVector;	//The direction and magnitude as a vector, (0,0,0) means no force
 }Force;
+
+typedef struct
+{
+	GFC_Vector2D	origin;			
+	GFC_Vector2D	forceVector;
+}Force2D;			//Used for torque calculations
 
 /*
 * "move" a force along it's forceVector so that some part of the origin, either the x, y, or z is 0
