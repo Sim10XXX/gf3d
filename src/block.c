@@ -52,4 +52,5 @@ Entity* spawn_block() {
 	block->model = gf3d_model_load("models/platform.model");
 		//gf3d_model_load("models/primitives/cube.obj");
 	block->free = block_free;
+	block->colliding = 1;
 }

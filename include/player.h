@@ -4,6 +4,8 @@
 #include "simple_logger.h"
 #include "entity.h"
 
+#define radius_of_player 10
+
 typedef struct
 {
 	Uint8			cameraMode;
@@ -14,6 +16,7 @@ typedef struct
 	GFC_Vector3D	wheelFR; //front right
 	GFC_Vector3D	wheelRL; //rear left
 	GFC_Vector3D	wheelRR; //rear right
+	GFC_Vector3D	relativePos[4]; //positions of the wheels relative to the car (should be constant)
 }playerData;
 
 Entity *spawn_player();

@@ -4,7 +4,9 @@
 
 #include "gf3d_obj_load.h"
 
-int gf3d_obj_edge_test(ObjData *obj,GFC_Matrix4 offset, GFC_Edge3D e,GFC_Vector3D *contact)
+#define collisions_max 8
+
+int gf3d_obj_edge_test(ObjData* obj, GFC_Matrix4 offset, GFC_Edge3D e, GFC_Vector3D* contact)
 {
     int i;
     GFC_Vector4D out;
@@ -25,6 +27,73 @@ int gf3d_obj_edge_test(ObjData *obj,GFC_Matrix4 offset, GFC_Edge3D e,GFC_Vector3
         if (gfc_trigfc_angle_edge_test(e,t,contact))return 1;
     }
     return 0;
+}
+
+Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector3D* vlist, int *vlistc)
+{
+    int i, j;
+    Uint8 f = 0; //return flag
+    GFC_Vector3D contact;
+    GFC_Vector4D out;
+    GFC_Triangle3D t;
+    GFC_Edge3D e1, e2;
+    GFC_Vector3D ab, //vector from a->b, 
+        ac, //vector from a->c, 
+        abxac; //cross product between ab and ac
+    float mult;
+
+    if ((!obj) || (!obj->outFace))return 0;
+    if (!vlist) return 0;
+    for (i = 0; i < obj->face_count; i++)
+    {
+        t.a = obj->faceVertices[obj->outFace[i].verts[0]].vertex;
+        t.b = obj->faceVertices[obj->outFace[i].verts[1]].vertex;
+        t.c = obj->faceVertices[obj->outFace[i].verts[2]].vertex;
+        //apply offset
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.a, 0));
+        t.a = gfc_vector4dxyz(out);
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.b, 0));
+        t.b = gfc_vector4dxyz(out);
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.c, 0));
+        t.c = gfc_vector4dxyz(out);
+
+        //calculate vector perpendicular to triangle
+        gfc_vector3d_sub(ab, t.b, t.a);
+        gfc_vector3d_sub(ac, t.c, t.a);
+        gfc_vector3d_cross_product(&abxac, ab, ac);
+
+        //scale vector to the radius of the sphere
+        mult = s.r / gfc_vector3d_magnitude(abxac);
+        gfc_vector3d_scale(abxac, abxac, mult);
+
+        //create edges based on the vector and the sphere's position
+        gfc_vector3d_add(e1.a, s, abxac);
+        gfc_vector3d_sub(e2.a, s, abxac);
+
+        gfc_vector3d_copy(e1.b, s);
+        gfc_vector3d_copy(e2.b, s);
+
+
+        if (gfc_trigfc_angle_edge_test(e1, t, &contact)) {
+            f = 1;
+            gfc_vector3d_set(vlist[*vlistc], -abxac.x, -abxac.y, -abxac.z);
+            *vlistc += 1;
+            if (*vlistc == collisions_max) {
+                *vlistc = 0;
+            }
+        }
+        else if (gfc_trigfc_angle_edge_test(e2, t, &contact)) {
+            f = 1;
+            gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
+            *vlistc += 1;
+            if (*vlistc == collisions_max) {
+                *vlistc = 0;
+            }
+        }
+
+        
+    }
+    return f;
 }
 
 void gf3d_obj_get_counts_from_file(ObjData *obj, FILE *file);

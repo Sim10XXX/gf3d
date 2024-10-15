@@ -6,10 +6,12 @@
 #include "gfc_vector.h"
 #include "gf3d_model.h"
 
+#define collisions_max 8
 
 typedef struct Entity_S
 {
 	Uint8			_inuse;		//flag for memory management
+	Uint8			colliding;
 	GFC_TextLine	name;		//name of entity
 	GFC_Vector3D	position;	//where am I
 	GFC_Vector3D	rotation;	//rotation, pitch yaw roll
@@ -36,7 +38,12 @@ void entity_think_all();
 
 void entity_draw_all();
 
-void entity_check_collision(Entity* self);
+
+/**
+* Check what faces a sphere (wheel) is colliding with, and populate the list with relevant vector perpendicular to that face,
+* where the magnitude happens to be equal to the sphere's radius
+*/
+void check_player_collision(GFC_Sphere s, GFC_Vector3D* vlist);
 
 /**
  * @brief allocates a blank entity for use

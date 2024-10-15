@@ -2,6 +2,8 @@
 
 #include "gfc_matrix.h"
 
+#include "gf3d_obj_load.h"
+
 #include "entity.h"
 
 
@@ -130,6 +132,40 @@ void entity_check_collision(Entity* self)
 	}
 }*/
 
+void check_player_collision(GFC_Sphere s, GFC_Vector3D *vlist, GFC_Vector3D* olist) {
+	if (!vlist)return;
+	GFC_Matrix4 matrix;
+	ObjData* obj;
+	GFC_List* temp;
+	Mesh* mesh;
+	MeshPrimitive* meshPrimitive;
+	int i;
+	int vlistc = 0;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue;
+		if (!entity_manager.entityList[i].colliding) continue;
+		gfc_matrix4_from_vectors(
+			matrix,
+			entity_manager.entityList[i].position,
+			entity_manager.entityList[i].rotation,
+			entity_manager.entityList[i].scale);
+
+
+		//Could pre-obtain objdata for a performace optimization in the future
+
+		temp = entity_manager.entityList[i].model->mesh_list;
+		//slog("list count: %i", gfc_list_get_count(temp));
+		mesh = (Mesh*)gfc_list_get_nth(temp, 0);
+		meshPrimitive = gfc_list_get_nth(mesh->primitives, 0);
+		//slog("list count: %i", gfc_list_get_count(mesh->primitives));
+		//slog("face count: %i, vertex count: %i", meshPrimitive->faceCount, meshPrimitive->vertexCount);
+		obj = meshPrimitive->objData;
+		
+		gf3d_obj_sphere_test(obj, matrix, s, vlist, &vlistc);
+	}
+}
+
 Entity *entity_new()
 {
 	int i;
@@ -160,12 +196,12 @@ void entity_free(Entity* self)
  * @brief allocates a blank entity for use
  * @returns NULL on failure (out of memory) or a pointer to the initialized entity
  */
-Entity* entity_new();
+//Entity* entity_new();
 
 /**
  * @brief return the memory of a previously allocated entity back to the pool
  * @param self the entity to free
  */
-void entity_free(Entity* self);
+//void entity_free(Entity* self);
 
 /*eol@eof*/

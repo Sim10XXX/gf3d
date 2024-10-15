@@ -8,8 +8,8 @@
 #include "force.h"
 
 #define friction 0.02
-
-
+#define wheel_radius 1
+#define normal_force_mult 0.3
 
 
 
@@ -34,31 +34,93 @@ void player_think(Entity* self)
 	if (!self->data)return;
 	playerData* pdata = self->data;
 	GFC_Vector3D dv = {0};
-	Force force;
 
 	if (gfc_input_command_down("walkforward")) {
 		//pdata->positionVelocity.y += 0.01;
 
 		gfc_vector2d_scale(dv, gfc_vector2d_from_angle(self->rotation.z),0.05);
-		gfc_vector2d_add(pdata->positionVelocity, pdata->positionVelocity, dv);
+		//gfc_vector2d_add(pdata->positionVelocity, pdata->positionVelocity, dv);
 		//slog("vx= %f", pdata->positionVelocity.x);
+		apply_force(
+			force3d(gfc_vector3d(0, 0, 0),
+				gfc_vector3d(dv.x, dv.y, 0)),
+			pdata);
 	}
 	if (gfc_input_command_down("walkright")) {
-		pdata->rotationVelocity.z += 0.01;
+		//pdata->rotationVelocity.z += 0.01;
+		apply_force(
+			force3d(gfc_vector3d(0, radius_of_player, 0),
+				gfc_vector3d(-0.01, 0, 0)),
+			pdata);
 	}
 	if (gfc_input_command_down("walkleft")) {
-		pdata->rotationVelocity.z -= 0.01;
+		//pdata->rotationVelocity.z -= 0.01;
+		apply_force(
+			force3d(gfc_vector3d(0, radius_of_player, 0),
+				gfc_vector3d(0.01, 0, 0)),
+			pdata);
 	}
 
 	//entity_check_collision(self);
 
 	//Add gravity force
-	force.origin = gfc_vector3d(0, 1, 0);
-	force.forceVector = gfc_vector3d(0, 0, -0.001);
+	//force.origin = gfc_vector3d(1, 1, 0);
+	//force.forceVector = gfc_vector3d(0, 0, -0.001);
 
-	apply_force(force, pdata);
+	apply_force(
+		force3d(gfc_vector3d(0, 0, 0), 
+			gfc_vector3d(0, 0, -0.001)),
+		pdata);
 	//pdata->rotationVelocity.x = 0.01;
+	GFC_Vector3D* wheel;
+	int i, j, k, l;
+	int equalcount;
+	//GFC_Vector3D vlist[collisions_max];
+	GFC_Vector3D vlistlist[4][collisions_max];
+	memset(&vlistlist, 0, sizeof(GFC_Vector3D) * collisions_max * 4);
 
+	Force3D forceQueue[4 * collisions_max];
+	memset(&forceQueue, 0, sizeof(Force3D) * collisions_max * 4);
+	int forceQueueC = 0;
+
+	for (i = 0, wheel = &pdata->wheelFL; i < 4; i++, wheel++) {
+		check_player_collision(gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i]);
+	}
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < collisions_max; j++) {
+			if (vlistlist[i][j].x == 0 && vlistlist[i][j].y == 0 && vlistlist[i][j].z == 0) continue;
+			//gfc_vector3d_set_magnitude(&vlist[j], 0.001);
+
+			//Since the force from vlist is supposed to be the direction of the normal force,
+			//We need to calculate the magnitude by using the player's current velocity
+			float mag = gfc_vector3d_dot_product(pdata->positionVelocity, vlistlist[i][j]) / gfc_vector3d_magnitude(vlistlist[i][j]);
+			mag *= -normal_force_mult;
+			equalcount = 1;
+			for (k = 0; k < 4; k++) {
+				if (k == i) continue;
+				for (l = 0; l < collisions_max; l++) {
+					if (gfc_vector3d_compare(vlistlist[i][j], vlistlist[k][l])) {
+						equalcount++;
+						break;
+					}
+				}
+			}
+			mag /= equalcount;
+
+			gfc_vector3d_set_magnitude(&vlistlist[i][j], mag);
+
+			/*apply_force(
+				force3d(pdata->relativePos[i],
+					vlistlist[i][j]),
+				pdata);*/
+			forceQueue[forceQueueC] = force3d(pdata->relativePos[i],vlistlist[i][j]);
+			forceQueueC++;
+			slog("hit");
+		}
+	}
+	for (i = 0; i < 4 * collisions_max; i++) {
+		apply_force(forceQueue[i], pdata);
+	}
 }
 //slog("position %f %f %f", self->position.x, self->position.y, self->position.z)
 
@@ -138,11 +200,12 @@ void player_update(Entity* self)
 
 	//update wheel pos
 	GFC_Matrix4 playerMatrix, wheelMatrix; //inplayerMatrix;
-	GFC_Vector3D relativePos[4] = {
+
+	/*GFC_Vector3D relativePos[4] = {
 		gfc_vector3d(-1, 2, 0),
 		gfc_vector3d(1, 2, 0),
 		gfc_vector3d(-1, -2, 0),
-		gfc_vector3d(1, -2, 0) };
+		gfc_vector3d(1, -2, 0) };*/
 
 	//pdata->wheelFL = self->position;
 
@@ -156,7 +219,7 @@ void player_update(Entity* self)
 			self->scale);
 		gfc_matrix4_from_vectors(
 			wheelMatrix,
-			relativePos[i],
+			pdata->relativePos[i],
 			gfc_vector3d(0, 0, 0),
 			gfc_vector3d(1, 1, 1));
 
@@ -226,6 +289,12 @@ Entity* spawn_player()
 	}
 	memset(pdata, 0, sizeof(playerData));
 	//pdata->hitbox = gfc_sphere(player->position.x, player->position.y, player->position.z, 1.0);
+	pdata->relativePos[0] = gfc_vector3d(-1, 2, 0);
+	pdata->relativePos[1] = gfc_vector3d(1, 2, 0);
+	pdata->relativePos[2] = gfc_vector3d(-1, -2, 0);
+	pdata->relativePos[3] = gfc_vector3d(1, -2, 0);
+
+	player->position = gfc_vector3d(0, 0, 100);
 	player->data = pdata;
 	player->think = player_think;
 	player->update = player_update;

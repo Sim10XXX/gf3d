@@ -2,12 +2,18 @@
 #include "gfc_matrix.h"
 #include "force.h"
 
-#define radius_of_player_squared 100
 #define torque_mult 0.1 //used to scale the rotational force by some constant
 
-void normalize_force(Force* force) {
+Force3D force3d(GFC_Vector3D origin, GFC_Vector3D forceVector) {
+	Force3D force;
+	gfc_vector3d_set(force.origin, origin.x, origin.y, origin.z);
+	gfc_vector3d_set(force.forceVector, forceVector.x, forceVector.y, forceVector.z);
+	return force;
+}
+
+void normalize_force(Force3D* force) {
 	if (!force) return;
-	Force absForce;
+	Force3D absForce;
 	GFC_Vector3D forceDelta;
 	float x, y, z, mult;
 	if (force->origin.x == 0 || force->origin.y == 0 || force->origin.z == 0) return;
@@ -68,6 +74,8 @@ float calculate_torque(Force2D f) {
 	//angle of the line L // angle to rotate forceVector by
 	float theta = 90 - acos(f.origin.x / L);
 
+	//There are some performace optimizations possible here (I will do that later)
+
 	//rotate forceVector
 	GFC_Vector2D temp = f.forceVector;
 	f.forceVector.x = temp.x * cos(theta) + temp.y * sin(theta);
@@ -77,7 +85,7 @@ float calculate_torque(Force2D f) {
 	return L * f.forceVector.x * torque_mult;
 }
 
-void apply_force(Force force, playerData* pdata) {
+void apply_force(Force3D force, playerData* pdata) {
 	if (!pdata) return;
 	normalize_force(&force);
 	float distSquared = (force.origin.x * force.origin.x) + (force.origin.y * force.origin.y) + (force.origin.z * force.origin.z);
@@ -91,6 +99,9 @@ void apply_force(Force force, playerData* pdata) {
 
 	distSquared /= radius_of_player_squared;
 	inverseDistSquared /= radius_of_player_squared;
+
+	inverseDistSquared = 1;  //experimental
+
 
 	//If a force is not directed at the center of gravity, it will have less of an effect on positionVelocity, 
 	//,because the force will also apply rotationalVelocity in the torque calculation
@@ -113,7 +124,7 @@ void apply_force(Force force, playerData* pdata) {
 	//rotation about the y axis (or x i guess)
 	f.origin = gfc_vector2d(force.origin.x, force.origin.z);
 	f.forceVector = gfc_vector2d(force.forceVector.x, force.forceVector.z);
-	torque.x = calculate_torque(f);
+	torque.x = -calculate_torque(f);
 
 	//rotation about the x axis (or y i guess)
 	f.origin = gfc_vector2d(force.origin.y, force.origin.z);
