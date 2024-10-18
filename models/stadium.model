@@ -1,0 +1,6 @@
+{
+  "model": {
+    "obj": "models/stadium/stadium.obj",
+    "texture": "models/stadium/stadium.png"
+  }
+}

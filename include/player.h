@@ -17,6 +17,7 @@ typedef struct
 	GFC_Vector3D	wheelRL; //rear left
 	GFC_Vector3D	wheelRR; //rear right
 	GFC_Vector3D	relativePos[4]; //positions of the wheels relative to the car (should be constant)
+	int				framecount;
 }playerData;
 
 Entity *spawn_player();

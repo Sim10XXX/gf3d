@@ -119,7 +119,7 @@ int main(int argc,char *argv[])
     entity_system_init(1000);
 
     ent = spawn_player();
-    spawn_block();
+    //spawn_block();
     //if (ent)
     //{
     //    ent->model = dino;
@@ -128,7 +128,10 @@ int main(int argc,char *argv[])
     //}
 
     // main game loop    
-    
+    Entity* stadium = entity_new();
+    stadium->model = gf3d_model_load("models/stadium.model");
+    stadium->colliding = 1;
+
     while(!_done)
     {
         gfc_input_update();
@@ -138,10 +141,10 @@ int main(int argc,char *argv[])
         gf3d_camera_controls_update();
         gf3d_camera_update_view();
         gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
-
+        
         entity_think_all();
         entity_update_all();
-
+        
         gf3d_vgraphics_render_start();
         
         entity_draw_all();
