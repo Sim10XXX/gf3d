@@ -119,7 +119,15 @@ int main(int argc,char *argv[])
     entity_system_init(1000);
 
     ent = spawn_player();
-    //spawn_block();
+    Entity* block = spawn_block(2);
+    block->position = gfc_vector3d(0,30,0);
+    block->rotation = gfc_vector3d(0, 0, 0);//GFC_HALF_PI
+    block->scale = gfc_vector3d(2, 1, 3);
+
+    block = spawn_block(2);
+    block->position = gfc_vector3d(0, 30, 30);
+    block->rotation = gfc_vector3d(GFC_PI, 0, 0);//GFC_HALF_PI
+    block->scale = gfc_vector3d(2, 1, 3);
     //if (ent)
     //{
     //    ent->model = dino;

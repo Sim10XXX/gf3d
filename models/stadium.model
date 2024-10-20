@@ -1,6 +1,6 @@
 {
   "model": {
-    "obj": "models/stadium/stadium.obj",
+    "obj": "models/stadium/stadiumlow.obj",
     "texture": "models/stadium/stadium.png"
   }
 }

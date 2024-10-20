@@ -132,7 +132,7 @@ void entity_check_collision(Entity* self)
 	}
 }*/
 
-void check_player_collision(GFC_Sphere s, GFC_Vector3D *vlist, GFC_Vector3D* olist) {
+void check_player_collision(GFC_Sphere s, GFC_Vector4D *vlist, GFC_Vector3D* olist) {
 	if (!vlist)return;
 	GFC_Matrix4 matrix;
 	ObjData* obj;
@@ -141,6 +141,7 @@ void check_player_collision(GFC_Sphere s, GFC_Vector3D *vlist, GFC_Vector3D* oli
 	MeshPrimitive* meshPrimitive;
 	int i;
 	int vlistc = 0;
+	
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse)continue;

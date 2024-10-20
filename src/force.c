@@ -2,7 +2,7 @@
 #include "gfc_matrix.h"
 #include "force.h"
 
-#define torque_mult 0.1 //used to scale the rotational force by some constant
+#define torque_mult 0.05 //used to scale the rotational force by some constant
 
 Force3D force3d(GFC_Vector3D origin, GFC_Vector3D forceVector) {
 	Force3D force;
@@ -87,7 +87,7 @@ float calculate_torque(Force2D f) {
 
 void apply_force(Force3D force, playerData* pdata) {
 	if (!pdata) return;
-	normalize_force(&force);
+	//normalize_force(&force);
 	float distSquared = (force.origin.x * force.origin.x) + (force.origin.y * force.origin.y) + (force.origin.z * force.origin.z);
 	GFC_Vector3D delta;
 

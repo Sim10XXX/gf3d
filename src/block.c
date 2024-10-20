@@ -24,7 +24,7 @@ void block_free(Entity* self) {
 	free(self->data);
 }
 
-Entity* spawn_block() {
+Entity* spawn_block(int id) {
 	Entity* block = entity_new();
 	blockData* bdata;
 	if (!block) {
@@ -48,8 +48,15 @@ Entity* spawn_block() {
 
 	bdata->hitbox = gfc_triangle(p1,p2,p3);
 	block->data = bdata;
-	block->scale = gfc_vector3d(4, 4, 0.2);
-	block->model = gf3d_model_load("models/platform.model");
+	block->scale = gfc_vector3d(1, 1, 1);
+	if (id == 1) {
+		block->model = gf3d_model_load("models/platform.model");
+	}
+	else if (id == 2) {
+		slog("lplz");
+		block->model = gf3d_model_load("models/ramp.model");
+	}
+	
 		//gf3d_model_load("models/primitives/cube.obj");
 	block->free = block_free;
 	block->colliding = 1;
