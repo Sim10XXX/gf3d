@@ -164,7 +164,7 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 void draw_force(Force3D force, Entity* self) {
 	GFC_Vector3D fv = force.forceVector;
 	GFC_Vector3D origin = force.origin;
-	gfc_vector3d_scale(fv, fv, 1000);
+	gfc_vector3d_scale(fv, fv, 800);
 	gfc_vector3d_add(origin, origin, self->position);
 	gfc_vector3d_add(fv, fv, origin);
 	gf3d_draw_edge_3d(

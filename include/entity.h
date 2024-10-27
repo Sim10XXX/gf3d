@@ -24,6 +24,7 @@ typedef struct Entity_S
 	int  (*draw)	(struct Entity_S *self);			//for custom drawing code. If -1, skip generic drawing code
 	void (*free)	(struct Entity_S *self);			//called when the entity is cleaned up to clean up custom data
 	void (*touch)	(struct Entity_S* self, struct Entity_S* other);
+	void (*reset)	(struct Entity_S* self);
 	void			*data;		//entity custom data - for everything beyond the basics
 }Entity;
 
@@ -38,6 +39,8 @@ void entity_update_all();
 void entity_think_all();
 
 void entity_draw_all();
+
+void entity_reset(); //reset things like checkpoints when restarting a map
 
 
 /**

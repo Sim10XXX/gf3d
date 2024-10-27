@@ -28,6 +28,7 @@
 #include "entity.h"
 #include "player.h"
 #include "block.h"
+#include "map.h"
 
 extern int __DEBUG;
 
@@ -121,6 +122,10 @@ int main(int argc,char *argv[])
     player = spawn_player();
     playerData* pdata = player->data;
     pdata->mapData = load_map_from_cfg("config/map.cfg");
+    //if (!pdata->mapData) return 400;
+    Entity* startBlock = pdata->mapData->startBlock;
+    player->position = startBlock->position;
+    player->rotation = startBlock->rotation;
 
     Entity* block = spawn_block(2);
     block->position = gfc_vector3d(0,30,0);
@@ -176,7 +181,7 @@ int main(int argc,char *argv[])
                 
                 //draw speed text
 
-                int w = 1050, h = 650;
+                int w = 1050, h = 680;
                 //SDL_GetWindowSize(SDL_GL_GetCurrentWindow(), &w, &h);
                 char outputtext[20] = "Speed: ";
                 char speed[10];
@@ -188,6 +193,23 @@ int main(int argc,char *argv[])
                 //slog("String: %s", outputtext);
                 gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w - 8, h - 8));
                 gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w-10, h-10));
+
+
+                //draw current time
+
+                //char time[10];
+                //sprintf(time, "%i", pdata->framecount);
+
+                sprintf(outputtext, "Time: %.2f", (pdata->framecount)/30.0);
+                if (pdata->gameState == 0) {
+                    gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h - 8));
+                    gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w / 2 - 2, h - 10));
+                }
+                else if (pdata->gameState == 1) {
+                    gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h / 2 - 8));
+                    gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_WHITE, gfc_vector2d(w / 2 - 2, h / 2 - 10));
+                }
+                
 
 
         gf3d_vgraphics_render_end();

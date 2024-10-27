@@ -10,6 +10,7 @@ typedef struct
 	Uint8 currentCheckpoints;
 	Entity* lastCheckpoint;
 	Entity* startBlock;
+	int mapID;
 }mapData;
 
 mapData* load_map_from_cfg(const char* filename);

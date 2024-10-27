@@ -216,3 +216,14 @@ void entity_free(Entity* self)
 //void entity_free(Entity* self);
 
 /*eol@eof*/
+
+
+void entity_reset() {
+	int i;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue; //
+		if (!entity_manager.entityList[i].reset) continue;
+		entity_manager.entityList[i].reset(&entity_manager.entityList[i]);
+	}
+}

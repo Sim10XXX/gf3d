@@ -15,18 +15,22 @@ mapData* load_map_from_cfg(const char* filename) {
 		slog("Couldn't load filename");
 		return 0;
 	}
-	SJmap = sj_object_get_value(SJmap, "blocks");
-	if (!SJmap) {
-		slog("Invalid map file");
-		return 0;
-	}
-
 	mapData* mdata;
 	mdata = gfc_allocate_array(sizeof(mapData), 1);
 	if (!mdata) {
 		slog("Could not allocate mapData");
 		return 0;
 	}
+
+	sj_object_get_value_as_int(SJmap, "mapID", &mdata->mapID);
+
+	SJmap = sj_object_get_value(SJmap, "blocks");
+	if (!SJmap) {
+		slog("Invalid map file");
+		return 0;
+	}
+
+	
 
 
 	int c = sj_array_get_count(SJmap);
@@ -52,17 +56,20 @@ mapData* load_map_from_cfg(const char* filename) {
 		//slog("c: % i", c);
 		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(block->position));
 		//GFC_HALF_PI;
-
-		if (id == 4) {
+		//slog("id: %i, number: %i", id, i);
+		if (id == 5) {
 			mdata->totalCheckpoints++;
 		}
-		if (sj_object_get_value_as_int(a, "start", &start)) {
+		if (sj_object_get_value_as_uint8(a, "start", &start)) {
 			if (start) {
 				mdata->startBlock = block;
+				mdata->lastCheckpoint = block;
 			}
 		}
 	}
-
-
+	if (!mdata->startBlock) {
+		slog("Invalid map, no start found");
+		return NULL;
+	}
 	return mdata;
 }

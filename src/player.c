@@ -28,19 +28,70 @@ void player_free(Entity* self)
 
 }
 
+void player_reset(Entity* self) {
+	playerData* pdata;
+	if (!self) {
+		return;
+	}
+	pdata = self->data;
+	
+	if (!pdata) {
+		slog("no pdata");
+		return;
+	}
+	//memset(pdata, 0, sizeof(playerData));
+	pdata->positionVelocity = gfc_vector3d(0, 0, 0);
+	pdata->rotationVelocity = gfc_vector3d(0, 0, 0);
+
+	self->position = gfc_vector3d(20, 0, 10);
+	self->rotation = gfc_vector3d(0, 0, 0);
+	
+}
+
+
 void player_think(Entity* self) 
 {
 	if (!self)return;
-	if (!self->data)return;
 	playerData* pdata = self->data;
+	if (!pdata)return;
+	mapData* mdata = pdata->mapData;
+	if (!mdata)return;
+
 	GFC_Vector3D dv = {0};
 
-	if (pdata->framecount == 0) {
+	if (!pdata->gameState) {
 		pdata->framecount++;
+	}
+
+	
+	if (pdata->framecount == 1) { //skip first frame because otherwise bad things happen
 		return;
 	}
 
-	if (gfc_input_command_down("walkforward")) {
+	if (gfc_input_command_down("restart")) {
+		Entity* startBlock = mdata->startBlock;
+		//player_reset(self);
+		entity_reset();
+		self->position = startBlock->position;
+		self->rotation = startBlock->rotation;
+
+		mdata->currentCheckpoints = 0;
+		mdata->lastCheckpoint = startBlock;
+		pdata->gameState = 0;
+		pdata->framecount = 1;
+		return;
+	}
+	
+
+	if (gfc_input_command_down("respawn") && !pdata->gameState) {
+		Entity* checkpointBlock = mdata->lastCheckpoint;
+		player_reset(self);
+		self->position = checkpointBlock->position;
+		self->rotation = checkpointBlock->rotation;
+		return;
+	}
+
+	if (gfc_input_command_down("walkforward") && !pdata->gameState) {
 		//pdata->positionVelocity.y += 0.01;
 
 		gfc_vector2d_scale(dv, gfc_vector2d_from_angle(self->rotation.z),0.05);
@@ -51,7 +102,7 @@ void player_think(Entity* self)
 				gfc_vector3d(dv.x, dv.y, 0)), //sin(self->rotation.x)*0.05)
 			self, 0);
 	}
-	if (gfc_input_command_down("walkright")) {
+	if (gfc_input_command_down("walkright") && !pdata->gameState) {
 		pdata->rotationVelocity.z -= 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
@@ -87,7 +138,7 @@ void player_think(Entity* self)
 		//		forcevec), //forcevec
 		//	self, 0);
 	
-	if (gfc_input_command_down("walkleft")) {
+	if (gfc_input_command_down("walkleft") && !pdata->gameState) {
 		pdata->rotationVelocity.z += 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
@@ -103,7 +154,7 @@ void player_think(Entity* self)
 
 	apply_force(
 		force3d(gfc_vector3d(0, 0, 0), 
-			gfc_vector3d(0, 0, -0.01)),
+			gfc_vector3d(0, 0, -0.02)),
 		self, 0);
 	//pdata->rotationVelocity.x = 0.01;
 	GFC_Vector3D* wheel;
@@ -165,6 +216,35 @@ void player_think(Entity* self)
 		check_player_collision(self, gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i]);
 		//slog("Wheel x: %f, y: %f, z: %f", wheel->x, wheel->y, wheel->z);
 	}
+
+	/*GFC_Vector3D* vlistpointer;
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < collisions_max; j++) {
+			if (gfc_vector4d_compare(vlistlist[i][j], gfc_vector4d(0, 0, 0, 0))) {
+				continue;
+			}
+			vlistpointer = &vlistlist[i][j];
+			gfc_vector3d_normalize(vlistpointer);
+			slog("normaled");
+		}
+	}*/
+
+	//get rid of duplicates, which occur when colliding with multiple triangles at the same angle
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < collisions_max; j++) {
+			if (gfc_vector3d_compare(vlistlist[i][j], gfc_vector3d(0, 0, 0))) {
+				continue;
+			}
+			for (k = j + 1; k < collisions_max; k++) {
+				if (gfc_vector3d_compare(vlistlist[i][j], vlistlist[i][k])) {
+					gfc_vector3d_set(vlistlist[i][j], 0, 0, 0);
+					//slog("dupe removed");
+					break;
+				}
+			}
+		}
+	}
+
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < collisions_max; j++) {
 			if (vlistlist[i][j].x == 0 && vlistlist[i][j].y == 0 && vlistlist[i][j].z == 0) continue;
@@ -172,6 +252,7 @@ void player_think(Entity* self)
 
 			//Since the force from vlist is supposed to be the direction of the normal force,
 			//We need to calculate the magnitude by using the player's current velocity
+
 			float mag = gfc_vector3d_dot_product(finalv[i], vlistlist[i][j]) / gfc_vector3d_magnitude(gfc_vector4dxyz(vlistlist[i][j]));
 			mag *= -normal_force_mult;
 			//mag = normal_force_mult;
@@ -465,6 +546,7 @@ Entity* spawn_player()
 	player->think = player_think;
 	player->update = player_update;
 	player->free = player_free;
+	player->reset = player_reset;
 	player->model = gf3d_model_load("models/primitives/sphere.obj");
 		//gf3d_model_load("models/dino.model");
 	player->draw = player_draw;

@@ -6,7 +6,11 @@
 #include "map.h"
 
 #define radius_of_player 10
-
+#define key_up 1
+#define key_right 2
+#define key_down 4
+#define key_left 8
+#define key_respawn 16
 typedef struct
 {
 	Uint8			cameraMode;
@@ -28,6 +32,8 @@ typedef struct
 	GFC_Vector3D	relativePos[4]; //positions of the wheels relative to the car (should be constant)
 
 	int				framecount;
+
+	Uint8			gameState;
 
 	mapData*		mapData;
 }playerData;
