@@ -1,0 +1,7 @@
+{
+    "model":
+    {
+        "obj":"models/platform/quarterpipe.obj",
+        "texture":"models/platform/platform.png"
+    }
+}

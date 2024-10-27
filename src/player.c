@@ -48,22 +48,51 @@ void player_think(Entity* self)
 		//slog("vx= %f", pdata->positionVelocity.x);
 		apply_force(
 			force3d(gfc_vector3d(0, 0, 0),
-				gfc_vector3d(dv.x, dv.y, 0), //sin(self->rotation.x)*0.05)
-			pdata);
+				gfc_vector3d(dv.x, dv.y, 0)), //sin(self->rotation.x)*0.05)
+			self, 0);
 	}
 	if (gfc_input_command_down("walkright")) {
-		//pdata->rotationVelocity.z += 0.01;
+		pdata->rotationVelocity.z -= 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
 				gfc_vector3d(-0.01, 0, 0)),
-			pdata);
+			self, 0);
 	}
+		GFC_Vector3D forcevec, forwardvec, upvec, velocity;
+		velocity = pdata->positionVelocity;
+		
+		gfc_vector3d_sub(forwardvec, pdata->wheelRR, pdata->wheelFR);
+		gfc_vector3d_sub(upvec, pdata->aboveFR, pdata->wheelFR);
+		gfc_vector3d_set_magnitude(&forwardvec, 1);
+		gfc_vector3d_set_magnitude(&upvec, 1);
+		//gfc_vector3d_add(v2, pdata->wheelFR, gfc_vector3d(0, 0, 5));
+
+		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(velocity));
+		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(forwardvec));
+		//slog("dot: %f",gfc_vector3d_dot_product(forwardvec, velocity));
+
+		//gfc_vector3d_cross_product(&forcevec, forwardvec, upvec);
+		//gfc_vector3d_set_magnitude(&forcevec, gfc_vector3d_dot_product(forwardvec, velocity)*0.1);
+
+		//forcevec = gfc_vector3d(0.01, 0, 0);
+		//gfc_vector3d_set_magnitude(&forcevec, gfc_vector3d_dot_product(forwardvec, velocity) * -0.01);
+
+		forwardvec = pdata->forward;
+		gfc_vector3d_set_magnitude(&velocity, gfc_vector3d_magnitude(forwardvec));
+		gfc_vector3d_sub(forcevec, forwardvec, velocity);
+		gfc_vector3d_set_magnitude(&forcevec, 0.01);
+
+		//apply_force(
+		//	force3d(gfc_vector3d(0,0,0),//pdata->relativePos[1],
+		//		forcevec), //forcevec
+		//	self, 0);
+	
 	if (gfc_input_command_down("walkleft")) {
-		//pdata->rotationVelocity.z -= 0.01;
+		pdata->rotationVelocity.z += 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
 				gfc_vector3d(0.01, 0, 0)),
-			pdata);
+			self, 0);
 	}
 
 	//entity_check_collision(self);
@@ -75,7 +104,7 @@ void player_think(Entity* self)
 	apply_force(
 		force3d(gfc_vector3d(0, 0, 0), 
 			gfc_vector3d(0, 0, -0.01)),
-		pdata);
+		self, 0);
 	//pdata->rotationVelocity.x = 0.01;
 	GFC_Vector3D* wheel;
 	int i, j, k, l;
@@ -133,7 +162,7 @@ void player_think(Entity* self)
 	wheel = &projectionData.wheelFL;
 
 	for (i = 0; i < 4; i++, wheel++) {
-		check_player_collision(gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i]);
+		check_player_collision(self, gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i]);
 		//slog("Wheel x: %f, y: %f, z: %f", wheel->x, wheel->y, wheel->z);
 	}
 	for (i = 0; i < 4; i++) {
@@ -163,7 +192,7 @@ void player_think(Entity* self)
 			/*apply_force(
 				force3d(pdata->relativePos[i],
 					vlistlist[i][j]),
-				pdata);*/
+				self);*/
 			GFC_Vector3D velement = gfc_vector4dxyz(vlistlist[i][j]);
 			//GFC_Vector3D angles = {0};
 			//GFC_Matrix4 rotmatrix;
@@ -200,7 +229,11 @@ void player_think(Entity* self)
 				//slog("z is negative");
 				//velement = gfc_vector3d(-velement.x, -velement.y, -velement.z);
 			}
-			
+			//GFC_Vector3D forigin, *temp;
+			//temp = &pdata->wheelFL;
+			//temp += i;
+
+			//gfc_vector3d_sub(forigin, (*temp), self->position);
 			forceQueue[forceQueueC] = force3d(pdata->relativePos[i], gfc_vector4dxyz(vlistlist[i][j]));
 			forceQueueC++;
 			//slog("hit #%i", forceQueueC);
@@ -208,7 +241,7 @@ void player_think(Entity* self)
 		}
 	}
 	for (i = 0; i < 4 * collisions_max; i++) {
-		apply_force(forceQueue[i], pdata);
+		apply_force(forceQueue[i], self, 0);
 		//slog("forcev x: %f, y: %f, z: %f", gfc_vector3d_to_slog(forceQueue[i].forceVector));
 	}
 
@@ -343,29 +376,22 @@ void player_update(Entity* self)
 
 	GFC_Vector3D* wheel;
 	int i;
+	gfc_matrix4_from_vectors(
+		playerMatrix,
+		self->position,
+		self->rotation,
+		self->scale);
 	for (i = 0, wheel = &pdata->wheelFL; i < 4; i++, wheel++) {
-		gfc_matrix4_from_vectors(
-			playerMatrix,
-			self->position,
-			self->rotation,
-			self->scale);
-		gfc_matrix4_from_vectors(
-			wheelMatrix,
-			pdata->relativePos[i],
-			gfc_vector3d(0, 0, 0),
-			gfc_vector3d(1, 1, 1));
-
-		gfc_matrix4_multiply(
-			wheelMatrix,
-			wheelMatrix,
-			playerMatrix);
-
-		gfc_matrix4_to_vectors(
-			wheelMatrix,
-			wheel,
-			NULL,
-			NULL);
+		gfc_vector3d_copy((*wheel), pdata->relativePos[i]);
+		apply_matrix(playerMatrix, wheel);
 	}
+	for (i = 0, wheel = &pdata->aboveFL; i < 4; i++, wheel++) {
+		gfc_vector3d_copy((*wheel), pdata->relativePos[i]);
+		wheel->z += 1;
+		apply_matrix(playerMatrix, wheel);
+	}
+	pdata->forward = gfc_vector3d(0, 1, 0);
+	apply_matrix(playerMatrix, &pdata->forward);
 }
 
 int player_draw(Entity* self)
@@ -433,8 +459,8 @@ Entity* spawn_player()
 	pdata->relativePos[2] = gfc_vector3d(-1, -2, 0);
 	pdata->relativePos[3] = gfc_vector3d(1, -2, 0);
 
-	player->position = gfc_vector3d(0, 0, 10);
-	player->rotation = gfc_vector3d(0, GFC_PI, 0);
+	player->position = gfc_vector3d(20, 0, 10);
+	player->rotation = gfc_vector3d(0, 0, 0);
 	player->data = pdata;
 	player->think = player_think;
 	player->update = player_update;

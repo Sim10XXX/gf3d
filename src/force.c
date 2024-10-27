@@ -1,5 +1,8 @@
 #include "simple_logger.h"
 #include "gfc_matrix.h"
+#include "gf3d_draw.h"
+//#include "entity.h"
+
 #include "force.h"
 
 #define torque_mult 0.05 //used to scale the rotational force by some constant
@@ -85,9 +88,29 @@ float calculate_torque(Force2D f) {
 	return L * f.forceVector.x * torque_mult;
 }
 
-void apply_force(Force3D force, playerData* pdata) {
+void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
+	if (!self) return;
+	playerData* pdata = self->data;
 	if (!pdata) return;
-	//normalize_force(&force);
+
+	
+
+	normalize_force(&force);
+
+	if (makeRelative) {
+		GFC_Matrix4 rotmatrix;
+		gfc_matrix4_from_vectors(
+			rotmatrix,
+			gfc_vector3d(0, 0, 0),
+			self->rotation,
+			gfc_vector3d(1, 1, 1));
+		apply_matrix(rotmatrix, &force.forceVector);
+	}
+
+	draw_force(force, self);
+
+
+
 	float distSquared = (force.origin.x * force.origin.x) + (force.origin.y * force.origin.y) + (force.origin.z * force.origin.z);
 	GFC_Vector3D delta;
 
@@ -100,8 +123,11 @@ void apply_force(Force3D force, playerData* pdata) {
 	distSquared /= radius_of_player_squared;
 	inverseDistSquared /= radius_of_player_squared;
 
-	inverseDistSquared = 1;  //experimental
-
+	if (inverseDistSquared != 0) {
+		inverseDistSquared = 1;  //experimental
+	}
+	
+	
 
 	//If a force is not directed at the center of gravity, it will have less of an effect on positionVelocity, 
 	//,because the force will also apply rotationalVelocity in the torque calculation
@@ -109,6 +135,7 @@ void apply_force(Force3D force, playerData* pdata) {
 
 	gfc_vector3d_scale(delta, force.forceVector, inverseDistSquared);
 	gfc_vector3d_add(pdata->positionVelocity, pdata->positionVelocity, delta);
+	
 	
 
 
@@ -119,7 +146,7 @@ void apply_force(Force3D force, playerData* pdata) {
 	Force2D f;
 	f.origin = gfc_vector2d(force.origin.x, force.origin.y);
 	f.forceVector = gfc_vector2d(force.forceVector.x, force.forceVector.y);
-	torque.z = calculate_torque(f);
+	//torque.z = calculate_torque(f);
 
 	//rotation about the y axis (or x i guess)
 	f.origin = gfc_vector2d(force.origin.x, force.origin.z);
@@ -134,3 +161,13 @@ void apply_force(Force3D force, playerData* pdata) {
 	gfc_vector3d_add(pdata->rotationVelocity, pdata->rotationVelocity, torque);
 }
 
+void draw_force(Force3D force, Entity* self) {
+	GFC_Vector3D fv = force.forceVector;
+	GFC_Vector3D origin = force.origin;
+	gfc_vector3d_scale(fv, fv, 1000);
+	gfc_vector3d_add(origin, origin, self->position);
+	gfc_vector3d_add(fv, fv, origin);
+	gf3d_draw_edge_3d(
+		gfc_edge3d_from_vectors(origin, fv),
+		gfc_vector3d(0, 0, 0), gfc_vector3d(0, 0, 0), gfc_vector3d(1, 1, 1), 0.1, gfc_color(1, 0, 1, 1));
+}

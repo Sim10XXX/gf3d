@@ -80,7 +80,7 @@ int main(int argc,char *argv[])
     Model *sky,*dino;
     GFC_Matrix4 skyMat,dinoMat;
 
-    Entity *ent;
+    Entity *player;
     //initializtion    
     parse_arguments(argc,argv);
     init_logger("gf3d.log",0);
@@ -118,14 +118,17 @@ int main(int argc,char *argv[])
     //windows
     entity_system_init(1000);
 
-    ent = spawn_player();
+    player = spawn_player();
+    playerData* pdata = player->data;
+    pdata->mapData = load_map_from_cfg("config/map.cfg");
+
     Entity* block = spawn_block(2);
     block->position = gfc_vector3d(0,30,0);
     block->rotation = gfc_vector3d(0, 0, 0);//GFC_HALF_PI
-    block->scale = gfc_vector3d(2, 1, 3);
+    block->scale = gfc_vector3d(1, 1, 1);
 
     block = spawn_block(2);
-    block->position = gfc_vector3d(0, 30, 30);
+    block->position = gfc_vector3d(70, 30, 30);
     block->rotation = gfc_vector3d(GFC_PI, 0, 0);//GFC_HALF_PI
     block->scale = gfc_vector3d(2, 1, 3);
     //if (ent)
@@ -150,10 +153,12 @@ int main(int argc,char *argv[])
         gf3d_camera_update_view();
         gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
         
+        gf3d_vgraphics_render_start();
+        
         entity_think_all();
         entity_update_all();
         
-        gf3d_vgraphics_render_start();
+        
         
         entity_draw_all();
             //3D draws
@@ -168,6 +173,23 @@ int main(int argc,char *argv[])
             //2D draws
                 gf2d_mouse_draw();
                 gf2d_font_draw_line_tag("ALT+F4 to exit",FT_H1,GFC_COLOR_WHITE, gfc_vector2d(10,10));
+                
+                //draw speed text
+
+                int w = 1050, h = 650;
+                //SDL_GetWindowSize(SDL_GL_GetCurrentWindow(), &w, &h);
+                char outputtext[20] = "Speed: ";
+                char speed[10];
+                float s = gfc_vector3d_magnitude(pdata->positionVelocity) * 100;
+                sprintf(speed, "%i", _cvt_ftoi_fast(s));
+                
+
+                strcat(outputtext, speed);
+                //slog("String: %s", outputtext);
+                gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w - 8, h - 8));
+                gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w-10, h-10));
+
+
         gf3d_vgraphics_render_end();
         if (gfc_input_command_down("exit"))_done = 1; // exit condition
         game_frame_delay();

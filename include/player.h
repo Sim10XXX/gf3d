@@ -3,6 +3,7 @@
 
 #include "simple_logger.h"
 #include "entity.h"
+#include "map.h"
 
 #define radius_of_player 10
 
@@ -16,8 +17,19 @@ typedef struct
 	GFC_Vector3D	wheelFR; //front right
 	GFC_Vector3D	wheelRL; //rear left
 	GFC_Vector3D	wheelRR; //rear right
+
+	GFC_Vector3D	aboveFL; //front left
+	GFC_Vector3D	aboveFR; //front right
+	GFC_Vector3D	aboveRL; //rear left
+	GFC_Vector3D	aboveRR; //rear right
+
+	GFC_Vector3D	forward;
+
 	GFC_Vector3D	relativePos[4]; //positions of the wheels relative to the car (should be constant)
+
 	int				framecount;
+
+	mapData*		mapData;
 }playerData;
 
 Entity *spawn_player();

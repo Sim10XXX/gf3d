@@ -23,6 +23,7 @@ typedef struct Entity_S
 	void (*update)	(struct Entity_S *self);			//called every frame for the entity to update its state
 	int  (*draw)	(struct Entity_S *self);			//for custom drawing code. If -1, skip generic drawing code
 	void (*free)	(struct Entity_S *self);			//called when the entity is cleaned up to clean up custom data
+	void (*touch)	(struct Entity_S* self, struct Entity_S* other);
 	void			*data;		//entity custom data - for everything beyond the basics
 }Entity;
 
@@ -43,7 +44,7 @@ void entity_draw_all();
 * Check what faces a sphere (wheel) is colliding with, and populate the list with relevant vector perpendicular to that face,
 * where the magnitude happens to be equal to the sphere's radius
 */
-void check_player_collision(GFC_Sphere s, GFC_Vector4D* vlist);
+void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D* vlist);
 
 /**
  * @brief allocates a blank entity for use

@@ -132,7 +132,7 @@ void entity_check_collision(Entity* self)
 	}
 }*/
 
-void check_player_collision(GFC_Sphere s, GFC_Vector4D *vlist, GFC_Vector3D* olist) {
+void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, GFC_Vector3D* olist*/) {
 	if (!vlist)return;
 	GFC_Matrix4 matrix;
 	ObjData* obj;
@@ -141,11 +141,13 @@ void check_player_collision(GFC_Sphere s, GFC_Vector4D *vlist, GFC_Vector3D* oli
 	MeshPrimitive* meshPrimitive;
 	int i;
 	int vlistc = 0;
+	Uint8 collisionType;
 	
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse)continue;
-		if (!entity_manager.entityList[i].colliding) continue;
+		collisionType = entity_manager.entityList[i].colliding;
+		if (!collisionType) continue;
 		gfc_matrix4_from_vectors(
 			matrix,
 			entity_manager.entityList[i].position,
@@ -163,7 +165,15 @@ void check_player_collision(GFC_Sphere s, GFC_Vector4D *vlist, GFC_Vector3D* oli
 		//slog("face count: %i, vertex count: %i", meshPrimitive->faceCount, meshPrimitive->vertexCount);
 		obj = meshPrimitive->objData;
 		
-		gf3d_obj_sphere_test(obj, matrix, s, vlist, &vlistc);
+		if (collisionType == 1) {
+			gf3d_obj_sphere_test(obj, matrix, s, vlist, &vlistc);
+		}
+		else if (collisionType == 2) {
+			if (gf3d_obj_sphere_test(obj, matrix, s, NULL, NULL)) {
+				if (!entity_manager.entityList[i].touch) continue;
+				entity_manager.entityList[i].touch(&entity_manager.entityList[i], self);
+			}
+		}
 	}
 }
 

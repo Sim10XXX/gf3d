@@ -32,6 +32,8 @@ Force3D force3d(GFC_Vector3D origin, GFC_Vector3D forceVector);
 
 void normalize_force(Force3D* force);
 
-void apply_force(Force3D force, playerData *pdata);
+void apply_force(Force3D force, Entity *self, Uint8 makeRelative);
+
+void draw_force(Force3D force, Entity* self);
 
 #endif

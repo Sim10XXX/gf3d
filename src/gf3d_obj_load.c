@@ -67,7 +67,7 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
     //slog("Offrot: x: %f, y: %f, z: %f", offrot.x, offrot.y, offrot.z);
     //slog("Offsca: x: %f, y: %f, z: %f", offscale.x, offscale.y, offscale.z);
     if ((!obj) || (!obj->outFace))return 0;
-    if (!vlist) return 0;
+    //if (!vlist) return 0;
     for (i = 0; i < obj->face_count; i++)
     {
         t.a = obj->faceVertices[obj->outFace[i].verts[0]].vertex;
@@ -143,6 +143,7 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
         if (gfc_trigfc_angle_edge_test(e1, t, &contact)) { //swap e1 and e2 for performance
                                                   //e1 means clipping from inside a face, e2 is the typical collision
             f = 1;
+            if (!vlist) continue;
             gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
             *vlistc += 1;
             if (*vlistc == collisions_max) {
@@ -152,6 +153,7 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
         }
         else if (gfc_trigfc_angle_edge_test(e2, t, &contact)) {
             f = 1;
+            if (!vlist) continue;
             gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
             *vlistc += 1;
             if (*vlistc == collisions_max) {
