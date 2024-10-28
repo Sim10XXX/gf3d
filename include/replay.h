@@ -4,13 +4,17 @@
 #include "simple_logger.h"
 #include "player.h"
 
-void read_replay(int id, int frame);
+FILE* open_replay(int id);
 
-void refresh_temp_replay();
+int get_replay_size(FILE* file);
 
-void append_to_temp_replay(int frame, int inputs);
+int read_replay(FILE* file);
 
-void save_temp_replay(int id);
+FILE* refresh_temp_replay(FILE* file);
+
+void append_to_temp_replay(int inputs, FILE* file);
+
+void save_temp_replay(int id, FILE* file);
 
 
 #endif

@@ -6,6 +6,7 @@
 #include "entity.h"
 #include "player.h"
 #include "force.h"
+#include "replay.h"
 
 #define friction 0.02
 #define wheel_radius 1
@@ -14,17 +15,52 @@
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
 
+int player_get_inputs(playerData* pdata) {
+	int inputs = 0;
+	if (pdata->isGhost) {
+		inputs = read_replay(pdata->currReplay);
+		//slog("inputs: %i", inputs);
+		return inputs;
+	}
+	
+	if (gfc_input_command_down("respawn")) {
+		inputs |= key_respawn;
+	}
+	if (gfc_input_command_down("walkforward")) {
+		inputs |= key_up;
+	}
+	if (gfc_input_command_down("walkbackward")) {
+		inputs |= key_down;
+	}
+	if (gfc_input_command_down("walkright")) {
+		inputs |= key_right;
+	}
+	if (gfc_input_command_down("walkleft")) {
+		inputs |= key_left;
+	}
+	return inputs;
+}
+
 void player_free(Entity* self) 
 {
 	if (!self) {
 		slog("invalid self pointer for player_free");
 		return;
 	}
-	if (!self->data) {
+	playerData* pdata = self->data;
+	if (!pdata) {
 		slog("no player data to free");
 		return;
 	}
-	free(self->data);
+	mapData* mdata = pdata->mapData;
+	if (!mdata) {
+		slog("no map data to free");
+	}
+	else {
+		free(mdata);
+	}
+
+	free(pdata);
 
 }
 
@@ -39,12 +75,15 @@ void player_reset(Entity* self) {
 		slog("no pdata");
 		return;
 	}
+	mapData* mdata = pdata->mapData;
+	if (!mdata)return;
 	//memset(pdata, 0, sizeof(playerData));
 	pdata->positionVelocity = gfc_vector3d(0, 0, 0);
 	pdata->rotationVelocity = gfc_vector3d(0, 0, 0);
 
-	self->position = gfc_vector3d(20, 0, 10);
-	self->rotation = gfc_vector3d(0, 0, 0);
+	self->position = mdata->startBlock->position;
+	self->rotation = mdata->startBlock->rotation;
+	
 	
 }
 
@@ -62,6 +101,26 @@ void player_think(Entity* self)
 	if (!pdata->gameState) {
 		pdata->framecount++;
 	}
+	else if (pdata->currReplay) { //Reached finish line, update saved replay with temp if faster
+		FILE* mapreplay;
+		mapreplay = open_replay(mdata->mapID);
+		if (mapreplay) {
+			int mapreplayframes = get_replay_size(mapreplay)/4 + 1;
+			slog("replay time: %.2f, my time: %.2f", mapreplayframes / 30.0, pdata->framecount / 30.0);
+			if (pdata->framecount < mapreplayframes) {
+				save_temp_replay(mdata->mapID, pdata->currReplay);
+			}
+			pdata->currReplay = NULL;
+			fclose(mapreplay);
+			pdata->framedelta = pdata->framecount - mapreplayframes;
+		}
+		else {
+			save_temp_replay(mdata->mapID, pdata->currReplay);
+			pdata->currReplay = NULL;
+			pdata->framedelta = 0;
+		}
+		
+	}
 
 	
 	if (pdata->framecount == 1) { //skip first frame because otherwise bad things happen
@@ -69,21 +128,41 @@ void player_think(Entity* self)
 	}
 
 	if (gfc_input_command_down("restart")) {
-		Entity* startBlock = mdata->startBlock;
+		//Entity* startBlock = mdata->startBlock;
 		//player_reset(self);
 		entity_reset();
-		self->position = startBlock->position;
-		self->rotation = startBlock->rotation;
+		//self->position = startBlock->position;
+		//self->rotation = startBlock->rotation;
 
 		mdata->currentCheckpoints = 0;
-		mdata->lastCheckpoint = startBlock;
+		mdata->lastCheckpoint = mdata->startBlock;
 		pdata->gameState = 0;
 		pdata->framecount = 1;
+
+		if (pdata->isGhost) {
+			if (pdata->currReplay) {
+				fclose(pdata->currReplay);
+				pdata->currReplay = open_replay(mdata->mapID);
+			}
+			
+		}
+		else {
+			pdata->currReplay = refresh_temp_replay(pdata->currReplay);
+		}
+		
+
 		return;
+	}
+	int inputs = 0;
+	if (!pdata->gameState) {
+		inputs = player_get_inputs(pdata);
+		if (!pdata->isGhost) {
+			append_to_temp_replay(inputs, pdata->currReplay);
+		}
 	}
 	
 
-	if (gfc_input_command_down("respawn") && !pdata->gameState) {
+	if ((key_respawn & inputs) && !pdata->gameState) { //could remove the checks for gamestate
 		Entity* checkpointBlock = mdata->lastCheckpoint;
 		player_reset(self);
 		self->position = checkpointBlock->position;
@@ -91,7 +170,7 @@ void player_think(Entity* self)
 		return;
 	}
 
-	if (gfc_input_command_down("walkforward") && !pdata->gameState) {
+	if ((key_up & inputs) && !pdata->gameState) {
 		//pdata->positionVelocity.y += 0.01;
 
 		gfc_vector2d_scale(dv, gfc_vector2d_from_angle(self->rotation.z),0.05);
@@ -102,7 +181,7 @@ void player_think(Entity* self)
 				gfc_vector3d(dv.x, dv.y, 0)), //sin(self->rotation.x)*0.05)
 			self, 0);
 	}
-	if (gfc_input_command_down("walkright") && !pdata->gameState) {
+	if ((key_right & inputs) && !pdata->gameState) {
 		pdata->rotationVelocity.z -= 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
@@ -138,7 +217,7 @@ void player_think(Entity* self)
 		//		forcevec), //forcevec
 		//	self, 0);
 	
-	if (gfc_input_command_down("walkleft") && !pdata->gameState) {
+	if ((key_left & inputs) && !pdata->gameState) {
 		pdata->rotationVelocity.z += 0.005;
 		apply_force(
 			force3d(gfc_vector3d(0, radius_of_player, 0),
@@ -438,11 +517,13 @@ void player_update(Entity* self)
 	lookTarget.z += 1;
 	dir.y = 30.0;
 
-
-	gfc_vector3d_rotate_about_z(&dir, self->rotation.z);
-	gfc_vector3d_sub(camera, self->position, dir);
-	camera.z += 10;
-	gf3d_camera_look_at(lookTarget, &camera);
+	if (!pdata->isGhost) {
+		gfc_vector3d_rotate_about_z(&dir, self->rotation.z);
+		gfc_vector3d_sub(camera, self->position, dir);
+		camera.z += 10;
+		gf3d_camera_look_at(lookTarget, &camera);
+	}
+	
 
 	//update wheel pos
 	GFC_Matrix4 playerMatrix, wheelMatrix; //inplayerMatrix;
@@ -520,7 +601,7 @@ int player_draw(Entity* self)
 	return -1;
 }
 
-Entity* spawn_player()
+Entity* spawn_player(mapData* mdata, Uint8 isGhost)
 {
 	Entity* player = entity_new();
 	playerData* pdata;
@@ -540,8 +621,8 @@ Entity* spawn_player()
 	pdata->relativePos[2] = gfc_vector3d(-1, -2, 0);
 	pdata->relativePos[3] = gfc_vector3d(1, -2, 0);
 
-	player->position = gfc_vector3d(20, 0, 10);
-	player->rotation = gfc_vector3d(0, 0, 0);
+	//player->position = gfc_vector3d(20, 0, 10);
+	//player->rotation = gfc_vector3d(0, 0, 0);
 	player->data = pdata;
 	player->think = player_think;
 	player->update = player_update;
@@ -550,5 +631,32 @@ Entity* spawn_player()
 	player->model = gf3d_model_load("models/primitives/sphere.obj");
 		//gf3d_model_load("models/dino.model");
 	player->draw = player_draw;
+
+	pdata->mapData = mdata;
+	player->position = mdata->startBlock->position;
+	player->rotation = mdata->startBlock->rotation;
+
+	if (!isGhost) {
+		pdata->currReplay = refresh_temp_replay(NULL);
+		mapData* ghostMdata = gfc_allocate_array(sizeof(mapData), 1);
+		ghostMdata->mapID = mdata->mapID;
+		ghostMdata->startBlock = mdata->startBlock;
+		ghostMdata->totalCheckpoints = mdata->totalCheckpoints;
+		spawn_player(ghostMdata, 1);
+	}
+	else {
+		pdata->currReplay = open_replay(mdata->mapID);
+		if (!pdata->currReplay) {
+			slog("no replay for ghost");
+			player_free(player);
+			return NULL;
+		}
+	}
+	pdata->isGhost = isGhost;
+	if (!pdata->currReplay) {
+		slog("somehow NULL");
+	}
+	
+
 	return player;
 }

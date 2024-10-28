@@ -32,13 +32,18 @@ typedef struct
 	GFC_Vector3D	relativePos[4]; //positions of the wheels relative to the car (should be constant)
 
 	int				framecount;
+	int				framedelta;		//comparison to ghost
 
 	Uint8			gameState;
 
 	mapData*		mapData;
+
+	Uint8			isGhost;
+
+	FILE*			currReplay;
 }playerData;
 
-Entity *spawn_player();
+Entity *spawn_player(mapData* mdata, Uint8 isGhost);
 void player_think(Entity* self);
 void player_update(Entity* self);
 void player_free(Entity* self);

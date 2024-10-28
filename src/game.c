@@ -118,16 +118,17 @@ int main(int argc,char *argv[])
     gf3d_camera_enable_free_look(1);
     //windows
     entity_system_init(1000);
-
-    player = spawn_player();
+    mapData* mdata = load_map_from_cfg("config/map.cfg");
+    player = spawn_player(mdata, 0);
+    
     playerData* pdata = player->data;
-    pdata->mapData = load_map_from_cfg("config/map.cfg");
+    //pdata->mapData = ;
     //if (!pdata->mapData) return 400;
-    Entity* startBlock = pdata->mapData->startBlock;
-    player->position = startBlock->position;
-    player->rotation = startBlock->rotation;
+    //Entity* startBlock = pdata->mapData->startBlock;
+    //player->position = startBlock->position;
+    //player->rotation = startBlock->rotation;
 
-    Entity* block = spawn_block(2);
+    /*Entity* block = spawn_block(2);
     block->position = gfc_vector3d(0,30,0);
     block->rotation = gfc_vector3d(0, 0, 0);//GFC_HALF_PI
     block->scale = gfc_vector3d(1, 1, 1);
@@ -135,7 +136,7 @@ int main(int argc,char *argv[])
     block = spawn_block(2);
     block->position = gfc_vector3d(70, 30, 30);
     block->rotation = gfc_vector3d(GFC_PI, 0, 0);//GFC_HALF_PI
-    block->scale = gfc_vector3d(2, 1, 3);
+    block->scale = gfc_vector3d(2, 1, 3);*/
     //if (ent)
     //{
     //    ent->model = dino;
@@ -199,13 +200,20 @@ int main(int argc,char *argv[])
 
                 //char time[10];
                 //sprintf(time, "%i", pdata->framecount);
-
-                sprintf(outputtext, "Time: %.2f", (pdata->framecount)/30.0);
+                
+                
                 if (pdata->gameState == 0) {
+                    sprintf(outputtext, "Time: %.2f", (pdata->framecount) / 30.0);
                     gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h - 8));
                     gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w / 2 - 2, h - 10));
                 }
                 else if (pdata->gameState == 1) {
+                    if (pdata->framedelta >= 0) {
+                        sprintf(outputtext, "Time: %.2f (+%.2f)", (pdata->framecount) / 30.0, (pdata->framedelta) / 30.0);
+                    }
+                    else {
+                        sprintf(outputtext, "Time: %.2f (%.2f)", (pdata->framecount) / 30.0, (pdata->framedelta) / 30.0);
+                    }
                     gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h / 2 - 8));
                     gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_WHITE, gfc_vector2d(w / 2 - 2, h / 2 - 10));
                 }

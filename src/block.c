@@ -49,13 +49,15 @@ void checkpoint_touch(Entity* self, Entity* player) {
 		slog("no player data");
 		return;
 	}
-	bdata->touched = 1;
 	mapData* mdata = pdata->mapData;
 	if (!mdata) {
 		slog("no map data");
 		return;
 	}
-	mdata->currentCheckpoints++;
+	if (!pdata->isGhost) {
+		bdata->touched = 1;
+		mdata->currentCheckpoints++;
+	}
 	mdata->lastCheckpoint = self;
 }
 
