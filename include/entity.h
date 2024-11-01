@@ -61,4 +61,6 @@ Entity* entity_new();
  */
 void entity_free(Entity* self);
 
+//Entity* get_block_with_
+
 #endif

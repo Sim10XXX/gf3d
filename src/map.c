@@ -6,10 +6,13 @@
 
 #include "map.h"
 
+#include "node.h"
+
 
 mapData* load_map_from_cfg(const char* filename) {
-	SJson* SJmap, * a;
+	SJson* SJmap, * a, *blocklist, *nodelist;
 	Uint8 start;
+	int nodeId;
 	SJmap = sj_load(filename);
 	if (!SJmap) {
 		slog("Couldn't load filename");
@@ -24,8 +27,9 @@ mapData* load_map_from_cfg(const char* filename) {
 
 	sj_object_get_value_as_int(SJmap, "mapID", &mdata->mapID);
 
-	SJmap = sj_object_get_value(SJmap, "blocks");
-	if (!SJmap) {
+	blocklist = sj_object_get_value(SJmap, "blocks");
+	nodelist = sj_object_get_value(SJmap, "nodes");
+	if (!blocklist) {
 		slog("Invalid map file");
 		return 0;
 	}
@@ -33,14 +37,21 @@ mapData* load_map_from_cfg(const char* filename) {
 	
 
 
-	int c = sj_array_get_count(SJmap);
+	int c = sj_array_get_count(blocklist);
 	int i;
 	Entity* block;
+
+	Entity* checkpointList[MAX_CHECKPOINTS];
+	memset(checkpointList, 0, sizeof(Entity*) * MAX_CHECKPOINTS);
+	mdata->hasNodes = 0;
+	//GFC_Vector3D grid;
 	for (i = 0; i < c; i++) {
-		a = sj_array_get_nth(SJmap, i);
+		a = sj_array_get_nth(blocklist, i);
 		if (!a) continue;
 		int id;
-		sj_object_get_value_as_int(a, "id", &id);
+		if (!sj_object_get_value_as_int(a, "id", &id)) {
+			continue;
+		}
 
 		block = spawn_block(id);
 
@@ -48,9 +59,23 @@ mapData* load_map_from_cfg(const char* filename) {
 			continue;
 		}
 
-		sj_object_get_vector3d(a, "position", &block->position);
-		sj_object_get_vector3d(a, "rotation", &block->rotation);
-		sj_object_get_vector3d(a, "scale", &block->scale);
+		if (sj_object_get_vector3d(a, "grid", &block->position)) {
+			gfc_vector3d_scale(block->position, block->position, 20);
+			block->position.z += 10;
+		}
+		else if (!sj_object_get_vector3d(a, "position", &block->position)) {
+			block->position = gfc_vector3d(0, 0, 10);
+		}
+
+		if (!sj_object_get_vector3d(a, "rotation", &block->rotation)) {
+			block->rotation = gfc_vector3d(0, 0, 0);
+		}
+		else {
+			gfc_vector3d_scale(block->rotation, block->rotation, GFC_DEGTORAD);
+		}
+		if (!sj_object_get_vector3d(a, "scale", &block->scale)) {
+			block->scale = gfc_vector3d(1, 1, 1);
+		}
 		//sj_object_get_value_as_int(a, "colliding", &block->colliding);
 
 		//slog("c: % i", c);
@@ -66,10 +91,63 @@ mapData* load_map_from_cfg(const char* filename) {
 				mdata->lastCheckpoint = block;
 			}
 		}
+
+		if (sj_object_get_value_as_int(a, "nodeId", &nodeId)) {
+			if (nodeId >= MAX_CHECKPOINTS) {
+				slog("nodeId too large");
+				continue;
+			}
+			checkpointList[nodeId] = block;
+			slog("Block Nodeid: %i", nodeId);
+		}
+
 	}
 	if (!mdata->startBlock) {
 		slog("Invalid map, no start found");
 		return NULL;
 	}
+
+	c = sj_array_get_count(nodelist);
+	//Entity* block;
+	//GFC_Vector3D grid;
+
+	node_system_init(c);
+	Node* nodeList;
+	nodeList = gfc_allocate_array(sizeof(Node), c);
+	if (!nodeList) {
+		slog("Failed to alloc nodeList during map parsing");
+		return mdata;
+	}
+	if (c > 0) {
+		mdata->hasNodes = 1;
+	}
+	for (i = 0; i < c; i++) {
+		a = sj_array_get_nth(nodelist, i);
+		if (!a) continue;
+
+
+
+		if (sj_object_get_vector3d(a, "grid", &nodeList[i].position)) {
+			gfc_vector3d_scale(nodeList[i].position, nodeList[i].position, 20);
+			nodeList[i].position.z += 10;
+		}
+		else if (!sj_object_get_vector3d(a, "position", &nodeList[i].position)) {
+			nodeList[i].position = gfc_vector3d(0, 0, 10);
+		}
+		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(nodeList[i].position));
+		if (sj_object_get_value_as_int(a, "nodeId", &nodeId)) {
+			if (nodeId >= MAX_CHECKPOINTS) {
+				slog("nodeId too large");
+				continue;
+			}
+			nodeList[i].block = checkpointList[nodeId];
+			nodeList[i].checkpointNode = 1;
+			slog("Node Nodeid: %i", nodeId);
+		}
+		//if ()
+	}
+	set_nodes(nodeList);
+
+	free(nodeList);
 	return mdata;
 }

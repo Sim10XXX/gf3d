@@ -95,7 +95,7 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 
 	
 
-	normalize_force(&force);
+	//normalize_force(&force);
 
 	if (makeRelative) {
 		GFC_Matrix4 rotmatrix;

@@ -11,6 +11,7 @@ typedef struct
 	Entity* lastCheckpoint;
 	Entity* startBlock;
 	int mapID;
+	Uint8 hasNodes;
 }mapData;
 
 mapData* load_map_from_cfg(const char* filename);

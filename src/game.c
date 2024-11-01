@@ -119,7 +119,7 @@ int main(int argc,char *argv[])
     //windows
     entity_system_init(1000);
     mapData* mdata = load_map_from_cfg("config/map.cfg");
-    player = spawn_player(mdata, 0);
+    player = spawn_player(mdata, playertype_player);
     
     playerData* pdata = player->data;
     //pdata->mapData = ;

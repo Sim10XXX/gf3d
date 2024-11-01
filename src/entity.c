@@ -6,6 +6,8 @@
 
 #include "entity.h"
 
+#include "node.h"
+
 
 typedef struct
 {
@@ -82,6 +84,7 @@ void entity_draw_all()
 		if (!entity_manager.entityList[i]._inuse) continue; //
 		entity_draw(&entity_manager.entityList[i]);
 	}
+	draw_all_nodes();
 }
 
 void entity_think(Entity *self)
@@ -135,6 +138,7 @@ void entity_check_collision(Entity* self)
 void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, GFC_Vector3D* olist*/) {
 	if (!vlist)return;
 	GFC_Matrix4 matrix;
+	GFC_Matrix4* pmatrix;
 	ObjData* obj;
 	GFC_List* temp;
 	Mesh* mesh;
@@ -142,17 +146,28 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 	int i;
 	int vlistc = 0;
 	Uint8 collisionType;
-	
+	GFC_Vector3D translation = {0};
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse)continue;
 		collisionType = entity_manager.entityList[i].colliding;
 		if (!collisionType) continue;
-		gfc_matrix4_from_vectors(
-			matrix,
-			entity_manager.entityList[i].position,
-			entity_manager.entityList[i].rotation,
-			entity_manager.entityList[i].scale);
+
+		if (entity_manager.entityList[i].rotation.x == 0 && entity_manager.entityList[i].rotation.y == 0 &&
+			entity_manager.entityList[i].rotation.z == 0 && entity_manager.entityList[i].scale.x == 1 &&
+			entity_manager.entityList[i].scale.y == 1 && entity_manager.entityList[i].scale.z == 1) {
+			translation = entity_manager.entityList[i].position;
+			pmatrix = NULL;
+		}
+		else {
+			gfc_matrix4_from_vectors(
+				matrix,
+				entity_manager.entityList[i].position,
+				entity_manager.entityList[i].rotation,
+				entity_manager.entityList[i].scale);
+			pmatrix = matrix;
+		}
+		
 
 
 		//Could pre-obtain objdata for a performace optimization in the future
@@ -166,10 +181,10 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 		obj = meshPrimitive->objData;
 		
 		if (collisionType == 1) {
-			gf3d_obj_sphere_test(obj, matrix, s, vlist, &vlistc);
+			gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation);
 		}
 		else if (collisionType == 2) {
-			if (gf3d_obj_sphere_test(obj, matrix, s, NULL, NULL)) {
+			if (gf3d_obj_sphere_test(obj, pmatrix, s, NULL, NULL, translation)) {
 				if (!entity_manager.entityList[i].touch) continue;
 				entity_manager.entityList[i].touch(&entity_manager.entityList[i], self);
 			}

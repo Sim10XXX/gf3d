@@ -11,5 +11,7 @@ Entity* spawn_block(int id);
 
 void block_free(Entity* self);
 
+//void set_node_id(Entity* self, Uint16 nodeId);
+
 
 #endif

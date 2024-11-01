@@ -11,6 +11,9 @@
 #define key_down 4
 #define key_left 8
 #define key_respawn 16
+#define playertype_player 0
+#define playertype_replay 1
+#define playertype_ai 2
 typedef struct
 {
 	Uint8			cameraMode;
@@ -38,12 +41,12 @@ typedef struct
 
 	mapData*		mapData;
 
-	Uint8			isGhost;
+	Uint8			playerType;		//0 = player, 1 = replay ghost, 2 = AI ghost
 
 	FILE*			currReplay;
 }playerData;
 
-Entity *spawn_player(mapData* mdata, Uint8 isGhost);
+Entity *spawn_player(mapData* mdata, Uint8 playerType);
 void player_think(Entity* self);
 void player_update(Entity* self);
 void player_free(Entity* self);

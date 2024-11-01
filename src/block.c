@@ -8,9 +8,12 @@
 
 #include "block.h"
 
+#include "node.h"
+
 typedef struct
 {
-	Uint8 touched;
+	Uint8 touched;	//for the player
+	Uint8 AItouched; //for the AI
 }blockData;
 
 void block_reset(Entity* self) {
@@ -24,6 +27,7 @@ void block_reset(Entity* self) {
 		return;
 	}
 	bdata->touched = 0;
+	bdata->AItouched = 0;
 }
 
 void checkpoint_touch(Entity* self, Entity* player) {
@@ -36,10 +40,6 @@ void checkpoint_touch(Entity* self, Entity* player) {
 		slog("no data");
 		return;
 	}
-	if (bdata->touched) {
-		return;
-	}
-
 	if (!player) {
 		slog("invalid player");
 		return;
@@ -49,14 +49,29 @@ void checkpoint_touch(Entity* self, Entity* player) {
 		slog("no player data");
 		return;
 	}
+
+	if (bdata->touched && pdata->playerType == playertype_player) {
+		return;
+	}
+	if (bdata->AItouched && pdata->playerType == playertype_ai) {
+		return;
+	}
+
+	
 	mapData* mdata = pdata->mapData;
 	if (!mdata) {
 		slog("no map data");
 		return;
 	}
-	if (!pdata->isGhost) {
+	if (pdata->playerType == playertype_player) {
 		bdata->touched = 1;
 		mdata->currentCheckpoints++;
+	}
+	else if (pdata->playerType == playertype_ai) {
+		bdata->AItouched = 1;
+		mdata->currentCheckpoints++;
+		collect_checkpoint();
+		//slog("collected by ai");
 	}
 	mdata->lastCheckpoint = self;
 }
@@ -71,10 +86,6 @@ void finish_touch(Entity* self, Entity* player) {
 		slog("no data");
 		return;
 	}
-	if (bdata->touched) {
-		return;
-	}
-
 	if (!player) {
 		slog("invalid player");
 		return;
@@ -84,6 +95,15 @@ void finish_touch(Entity* self, Entity* player) {
 		slog("no player data");
 		return;
 	}
+
+	if (bdata->touched && pdata->playerType == playertype_player) {
+		return;
+	}
+	if (bdata->AItouched && pdata->playerType == playertype_ai) {
+		return;
+	}
+
+	
 	mapData* mdata = pdata->mapData;
 	if (!mdata) {
 		slog("no map data");
@@ -92,6 +112,9 @@ void finish_touch(Entity* self, Entity* player) {
 	//slog("Curr: %i, total: %i", mdata->currentCheckpoints, mdata->totalCheckpoints);
 	if (mdata->currentCheckpoints != mdata->totalCheckpoints) return;
 	pdata->gameState = 1;
+	if (pdata->playerType == playertype_ai) {
+		collect_checkpoint();
+	}
 }
 
 void block_free(Entity* self) {
@@ -163,3 +186,15 @@ Entity* spawn_block(int id) {
 	
 }
 
+/*void set_node_id(Entity* self, Uint16 nodeId) {
+	if (!self) {
+		slog("invalid self");
+		return;
+	}
+	blockData* bdata = self->data;
+	if (!bdata) {
+		slog("no data");
+		return;
+	}
+	bdata->nodeId = nodeId;
+}*/

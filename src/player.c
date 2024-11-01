@@ -7,6 +7,7 @@
 #include "player.h"
 #include "force.h"
 #include "replay.h"
+#include "node.h"
 
 #define friction 0.02
 #define wheel_radius 1
@@ -15,14 +16,88 @@
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
 
-int player_get_inputs(playerData* pdata) {
+int ailogic(Entity* self, GFC_Vector3D nodepos) {
+	playerData* pdata;
+	if (!self) {
+		return 0;
+	}
+	pdata = self->data;
+
+	if (!pdata) {
+		slog("no pdata");
+		return 0;
+	}
 	int inputs = 0;
-	if (pdata->isGhost) {
+
+	GFC_Vector2D nodeDir, velocityDir, facingDir, nodeDirClockwise90;
+	float velocitymag = gfc_vector3d_magnitude(pdata->positionVelocity);
+
+	gfc_vector2d_sub(nodeDir, nodepos, self->position);
+	gfc_vector2d_normalize(&nodeDir);
+
+	velocityDir = gfc_vector3dxy(pdata->positionVelocity);
+	gfc_vector2d_normalize(&velocityDir);
+
+	facingDir = gfc_vector2d_from_angle(self->rotation.z);
+	gfc_vector2d_normalize(&facingDir);
+
+	nodeDirClockwise90 = gfc_vector2d(-nodeDir.y, nodeDir.x);
+
+	//should I press forward?
+	if (velocitymag < 0.2) {
+		if (gfc_vector2d_dot_product(facingDir, nodeDir) > 0.5) {
+			inputs |= key_up;
+		}
+	}
+
+	//should I brake?
+	if (gfc_vector2d_dot_product(velocityDir, nodeDir) < 0.2) {
+		inputs |= key_down;
+	}
+
+	//always try to face the next node
+
+	float rotationdeadzone = 0.3;
+	if (gfc_vector2d_dot_product(facingDir, nodeDir) < 0) { //if facing away, remove the deadzone
+		rotationdeadzone = 0;
+	}
+
+	if (gfc_vector2d_dot_product(facingDir, nodeDirClockwise90) < rotationdeadzone) {
+		inputs |= key_left;
+	}
+	else if (gfc_vector2d_dot_product(facingDir, nodeDirClockwise90) > rotationdeadzone) {
+		inputs |= key_right;
+	}
+
+	return inputs;
+}
+
+
+int player_get_inputs(Entity* self) {
+	playerData* pdata;
+	if (!self) {
+		return 0;
+	}
+	pdata = self->data;
+
+	if (!pdata) {
+		slog("no pdata");
+		return 0;
+	}
+	int inputs = 0;
+	if (pdata->playerType == playertype_replay) {
 		inputs = read_replay(pdata->currReplay);
 		//slog("inputs: %i", inputs);
 		return inputs;
 	}
-	
+	if (pdata->playerType == playertype_ai) {
+		GFC_Vector3D nodepos;
+		nodepos = get_next_node(self->position);
+		inputs = ailogic(self, nodepos);
+		return inputs;
+	}
+
+
 	if (gfc_input_command_down("respawn")) {
 		inputs |= key_respawn;
 	}
@@ -90,6 +165,7 @@ void player_reset(Entity* self) {
 
 void player_think(Entity* self) 
 {
+	
 	if (!self)return;
 	playerData* pdata = self->data;
 	if (!pdata)return;
@@ -97,6 +173,8 @@ void player_think(Entity* self)
 	if (!mdata)return;
 
 	GFC_Vector3D dv = {0};
+
+	
 
 	if (!pdata->gameState) {
 		pdata->framecount++;
@@ -139,15 +217,18 @@ void player_think(Entity* self)
 		pdata->gameState = 0;
 		pdata->framecount = 1;
 
-		if (pdata->isGhost) {
+		if (pdata->playerType == playertype_replay) {
 			if (pdata->currReplay) {
 				fclose(pdata->currReplay);
 				pdata->currReplay = open_replay(mdata->mapID);
 			}
 			
 		}
-		else {
+		else if (pdata->playerType == playertype_player){
 			pdata->currReplay = refresh_temp_replay(pdata->currReplay);
+		}
+		else if (pdata->playerType == playertype_ai) {
+			reset_node_states();
 		}
 		
 
@@ -155,8 +236,8 @@ void player_think(Entity* self)
 	}
 	int inputs = 0;
 	if (!pdata->gameState) {
-		inputs = player_get_inputs(pdata);
-		if (!pdata->isGhost) {
+		inputs = player_get_inputs(self);
+		if (pdata->playerType == playertype_player) {
 			append_to_temp_replay(inputs, pdata->currReplay);
 		}
 	}
@@ -517,7 +598,7 @@ void player_update(Entity* self)
 	lookTarget.z += 1;
 	dir.y = 30.0;
 
-	if (!pdata->isGhost) {
+	if (pdata->playerType == playertype_player) {
 		gfc_vector3d_rotate_about_z(&dir, self->rotation.z);
 		gfc_vector3d_sub(camera, self->position, dir);
 		camera.z += 10;
@@ -601,7 +682,7 @@ int player_draw(Entity* self)
 	return -1;
 }
 
-Entity* spawn_player(mapData* mdata, Uint8 isGhost)
+Entity* spawn_player(mapData* mdata, Uint8 playerType)
 {
 	Entity* player = entity_new();
 	playerData* pdata;
@@ -636,15 +717,21 @@ Entity* spawn_player(mapData* mdata, Uint8 isGhost)
 	player->position = mdata->startBlock->position;
 	player->rotation = mdata->startBlock->rotation;
 
-	if (!isGhost) {
+	if (playerType == playertype_player) {
 		pdata->currReplay = refresh_temp_replay(NULL);
 		mapData* ghostMdata = gfc_allocate_array(sizeof(mapData), 1);
 		ghostMdata->mapID = mdata->mapID;
 		ghostMdata->startBlock = mdata->startBlock;
 		ghostMdata->totalCheckpoints = mdata->totalCheckpoints;
-		spawn_player(ghostMdata, 1);
+		spawn_player(ghostMdata, playertype_replay);
+
+		mapData* aiMdata = gfc_allocate_array(sizeof(mapData), 1);
+		aiMdata->mapID = mdata->mapID;
+		aiMdata->startBlock = mdata->startBlock;
+		aiMdata->totalCheckpoints = mdata->totalCheckpoints;
+		spawn_player(aiMdata, playertype_ai);
 	}
-	else {
+	else if (playerType == playertype_replay) {
 		pdata->currReplay = open_replay(mdata->mapID);
 		if (!pdata->currReplay) {
 			slog("no replay for ghost");
@@ -652,7 +739,7 @@ Entity* spawn_player(mapData* mdata, Uint8 isGhost)
 			return NULL;
 		}
 	}
-	pdata->isGhost = isGhost;
+	pdata->playerType = playerType;
 	if (!pdata->currReplay) {
 		slog("somehow NULL");
 	}

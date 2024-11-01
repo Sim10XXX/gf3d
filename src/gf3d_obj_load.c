@@ -47,7 +47,7 @@ int gf3d_obj_edge_test(ObjData* obj, GFC_Matrix4 offset, GFC_Edge3D e, GFC_Vecto
         NULL);
 }*/
 
-Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector4D* vlist, int *vlistc)
+Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector4D* vlist, int *vlistc, GFC_Vector3D translation)
 {
     int i, j;
     Uint8 f = 0; //return flag
@@ -91,9 +91,18 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
         //t.b = gfc_vector4dxyz(out);
         //gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.c, 0));
         //t.c = gfc_vector4dxyz(out);
-        apply_matrix(offset, &t.a);
-        apply_matrix(offset, &t.b);
-        apply_matrix(offset, &t.c);
+
+        if (offset == NULL) {
+            gfc_vector3d_add(t.a, t.a, translation);
+            gfc_vector3d_add(t.b, t.b, translation);
+            gfc_vector3d_add(t.c, t.c, translation);
+        }
+        else {
+            apply_matrix(offset, &t.a);
+            apply_matrix(offset, &t.b);
+            apply_matrix(offset, &t.c);
+        }
+        
 
         if (i == 0)
         {
