@@ -9,7 +9,7 @@
 #include "replay.h"
 #include "node.h"
 
-#define friction 0.02
+#define FRICTION 0.02
 #define wheel_radius 1
 #define normal_force_mult 0.59
 
@@ -174,7 +174,7 @@ void player_think(Entity* self)
 
 	GFC_Vector3D dv = {0};
 
-	
+	pdata->friction = FRICTION;
 
 	if (!pdata->gameState) {
 		pdata->framecount++;
@@ -314,7 +314,7 @@ void player_think(Entity* self)
 
 	apply_force(
 		force3d(gfc_vector3d(0, 0, 0), 
-			gfc_vector3d(0, 0, -0.02)),
+			gfc_vector3d(0, 0, -0.04)),
 		self, 0);
 	//pdata->rotationVelocity.x = 0.01;
 	GFC_Vector3D* wheel;
@@ -530,8 +530,8 @@ void velocity_update(Entity* self) {
 
 	//friction
 
-	gfc_vector3d_scale(deltaPV, pdata->positionVelocity, friction);
-	gfc_vector3d_scale(deltaRV, pdata->rotationVelocity, friction);
+	gfc_vector3d_scale(deltaPV, pdata->positionVelocity, pdata->friction);
+	gfc_vector3d_scale(deltaRV, pdata->rotationVelocity, pdata->friction);
 
 	gfc_vector3d_sub(pdata->positionVelocity, pdata->positionVelocity, deltaPV);
 	gfc_vector3d_sub(pdata->rotationVelocity, pdata->rotationVelocity, deltaRV);
@@ -565,13 +565,13 @@ void apply_friction(Entity* self) {
 	if (!self->data)return;
 	pdata = self->data;
 	GFC_Vector3D fvec;
-	gfc_vector3d_scale(fvec, pdata->positionVelocity, friction);
+	gfc_vector3d_scale(fvec, pdata->positionVelocity, pdata->friction);
 	if (gfc_vector3d_magnitude(fvec) > 0.01) {
 		gfc_vector3d_set_magnitude(&fvec, 0.01);
 	}
 	gfc_vector3d_sub(pdata->positionVelocity, pdata->positionVelocity, fvec);
 
-	gfc_vector3d_scale(fvec, pdata->rotationVelocity, friction);
+	gfc_vector3d_scale(fvec, pdata->rotationVelocity, pdata->friction);
 	if (gfc_vector3d_magnitude(fvec) > 0.01) {
 		gfc_vector3d_set_magnitude(&fvec, 0.01);
 	}

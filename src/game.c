@@ -148,6 +148,7 @@ int main(int argc,char *argv[])
     Entity* stadium = entity_new();
     stadium->model = gf3d_model_load("models/stadium.model");
     stadium->colliding = 1;
+    //stadium->scale = gfc_vector3d(10,10,10);
 
     while(!_done)
     {

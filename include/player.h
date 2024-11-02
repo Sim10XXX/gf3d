@@ -44,6 +44,8 @@ typedef struct
 	Uint8			playerType;		//0 = player, 1 = replay ghost, 2 = AI ghost
 
 	FILE*			currReplay;
+
+	float			friction;
 }playerData;
 
 Entity *spawn_player(mapData* mdata, Uint8 playerType);

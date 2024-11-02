@@ -181,7 +181,10 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 		obj = meshPrimitive->objData;
 		
 		if (collisionType == 1) {
-			gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation);
+			if (gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation)) {
+				if (!entity_manager.entityList[i].touch) continue;
+				entity_manager.entityList[i].touch(&entity_manager.entityList[i], self);
+			}
 		}
 		else if (collisionType == 2) {
 			if (gf3d_obj_sphere_test(obj, pmatrix, s, NULL, NULL, translation)) {
