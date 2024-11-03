@@ -97,17 +97,7 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 
 	//normalize_force(&force);
 
-	if (makeRelative) {
-		GFC_Matrix4 rotmatrix;
-		gfc_matrix4_from_vectors(
-			rotmatrix,
-			gfc_vector3d(0, 0, 0),
-			self->rotation,
-			gfc_vector3d(1, 1, 1));
-		apply_matrix(rotmatrix, &force.forceVector);
-	}
-
-	draw_force(force, self);
+	
 
 
 
@@ -137,7 +127,17 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 	gfc_vector3d_add(pdata->positionVelocity, pdata->positionVelocity, delta);
 	
 	
+	if (makeRelative) {
+		GFC_Matrix4 rotmatrix;
+		gfc_matrix4_from_vectors(
+			rotmatrix,
+			gfc_vector3d(0, 0, 0),
+			self->rotation,
+			gfc_vector3d(1, 1, 1));
+		apply_matrix(rotmatrix, &force.forceVector);
+	}
 
+	draw_force(force, self, gfc_color(1, 0, 1, 1));
 
 	//calculate torque (change in rotational velocity)
 	GFC_Vector3D torque = {0};
@@ -161,13 +161,67 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 	gfc_vector3d_add(pdata->rotationVelocity, pdata->rotationVelocity, torque);
 }
 
-void draw_force(Force3D force, Entity* self) {
+void apply_force_as_turn(Force3D force, Entity* self) {
+	if (!self) return;
+	playerData* pdata = self->data;
+	if (!pdata) return;
+
+	if (1) {
+		GFC_Matrix4 rotmatrix;
+		gfc_matrix4_from_vectors(
+			rotmatrix,
+			gfc_vector3d(0, 0, 0),
+			self->rotation,
+			gfc_vector3d(1, 1, 1));
+		apply_matrix(rotmatrix, &force.forceVector);
+		apply_matrix(rotmatrix, &force.origin);
+	}
+
+	draw_force(force, self, gfc_color(1, 0, 1, 1));
+
+	//calculate torque (change in rotational velocity)
+	GFC_Vector3D torque = { 0 };
+
+	//rotation about the z axis
+	Force2D f;
+	f.origin = gfc_vector2d(force.origin.x, force.origin.y);
+	f.forceVector = gfc_vector2d(force.forceVector.x, force.forceVector.y);
+	torque.z = calculate_torque(f);
+
+	//rotation about the y axis (or x i guess)
+	f.origin = gfc_vector2d(force.origin.x, force.origin.z);
+	f.forceVector = gfc_vector2d(force.forceVector.x, force.forceVector.z);
+	torque.x = -calculate_torque(f);
+
+	//rotation about the x axis (or y i guess)
+	f.origin = gfc_vector2d(force.origin.y, force.origin.z);
+	f.forceVector = gfc_vector2d(force.forceVector.y, force.forceVector.z);
+	torque.y = calculate_torque(f);
+
+	gfc_vector3d_add(self->rotation, self->rotation, torque);
+}
+
+void draw_force(Force3D force, Entity* self, GFC_Color color) {
 	GFC_Vector3D fv = force.forceVector;
 	GFC_Vector3D origin = force.origin;
 	gfc_vector3d_scale(fv, fv, 800);
-	gfc_vector3d_add(origin, origin, self->position);
-	gfc_vector3d_add(fv, fv, origin);
+	playerData* pdata = self->data;
+	if (!pdata) return;
+	//gfc_vector3d_add(origin, origin, self->position);
+	//gfc_vector3d_add(fv, fv, origin);
+	GFC_Matrix4 pmatrix;
+	gfc_matrix4_from_vectors(
+		pmatrix,
+		self->position,
+		self->rotation,
+		self->scale);
+	apply_matrix(pmatrix, &fv);
+	apply_matrix(pmatrix, &origin);
+
+	gfc_vector3d_add(origin, origin, pdata->positionVelocity);
+	gfc_vector3d_add(fv, fv, pdata->positionVelocity);
+
 	gf3d_draw_edge_3d(
 		gfc_edge3d_from_vectors(origin, fv),
-		gfc_vector3d(0, 0, 0), gfc_vector3d(0, 0, 0), gfc_vector3d(1, 1, 1), 0.1, gfc_color(1, 0, 1, 1));
+		gfc_vector3d(0, 0, 0), gfc_vector3d(0, 0, 0), gfc_vector3d(1, 1, 1), 0.1, color);
 }

@@ -46,6 +46,12 @@ typedef struct
 	FILE*			currReplay;
 
 	float			friction;
+
+	GFC_Vector3D	currentNormal; //of the surface the player is in contact with
+
+	Uint8			sliding; //There should be different turning physics if the car is in a sliding state or not
+
+	float			camstep;
 }playerData;
 
 Entity *spawn_player(mapData* mdata, Uint8 playerType);
