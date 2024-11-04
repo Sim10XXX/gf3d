@@ -145,6 +145,7 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 	MeshPrimitive* meshPrimitive;
 	int i;
 	int vlistc = 0;
+	float d;
 	Uint8 collisionType;
 	GFC_Vector3D translation = {0};
 	for (i = 0; i < entity_manager.entityMax; i++)
@@ -152,6 +153,13 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 		if (!entity_manager.entityList[i]._inuse)continue;
 		collisionType = entity_manager.entityList[i].colliding;
 		if (!collisionType) continue;
+
+		if (entity_manager.entityList[i].collisionRadius > 0) {
+			d = entity_manager.entityList[i].collisionRadius + s.r;
+			if (d*d < gfc_vector3d_magnitude_between_squared(entity_manager.entityList[i].position, self->position)) {
+				continue;
+			}
+		}
 
 		if (entity_manager.entityList[i].rotation.x == 0 && entity_manager.entityList[i].rotation.y == 0 &&
 			entity_manager.entityList[i].rotation.z == 0 && entity_manager.entityList[i].scale.x == 1 &&
@@ -181,7 +189,10 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 		obj = meshPrimitive->objData;
 		
 		if (collisionType == 1) {
-			gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation);
+			if (gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation)) {
+				if (!entity_manager.entityList[i].touch) continue;
+				entity_manager.entityList[i].touch(&entity_manager.entityList[i], self);
+			}
 		}
 		else if (collisionType == 2) {
 			if (gf3d_obj_sphere_test(obj, pmatrix, s, NULL, NULL, translation)) {

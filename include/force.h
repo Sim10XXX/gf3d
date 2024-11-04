@@ -34,6 +34,8 @@ void normalize_force(Force3D* force);
 
 void apply_force(Force3D force, Entity *self, Uint8 makeRelative);
 
+void apply_force_as_turn(Force3D force, Entity* self);
+
 void draw_force(Force3D force, Entity* self);
 
 #endif

@@ -44,6 +44,14 @@ typedef struct
 	Uint8			playerType;		//0 = player, 1 = replay ghost, 2 = AI ghost
 
 	FILE*			currReplay;
+
+	float			friction;
+
+	GFC_Vector3D	currentNormal; //of the surface the player is in contact with
+
+	Uint8			sliding; //There should be different turning physics if the car is in a sliding state or not
+	Uint8			surface;
+	float			camstep;
 }playerData;
 
 Entity *spawn_player(mapData* mdata, Uint8 playerType);

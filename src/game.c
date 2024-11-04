@@ -148,6 +148,7 @@ int main(int argc,char *argv[])
     Entity* stadium = entity_new();
     stadium->model = gf3d_model_load("models/stadium.model");
     stadium->colliding = 1;
+    //stadium->scale = gfc_vector3d(10,10,10);
 
     while(!_done)
     {
@@ -155,7 +156,10 @@ int main(int argc,char *argv[])
         gf2d_mouse_update();
         gf2d_font_update();
         //camera updaes
-        gf3d_camera_controls_update();
+        if (pdata->cameraMode == 7) {
+            gf3d_camera_controls_update();
+        }
+        
         gf3d_camera_update_view();
         gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
         

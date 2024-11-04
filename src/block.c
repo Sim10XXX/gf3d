@@ -14,6 +14,7 @@ typedef struct
 {
 	Uint8 touched;	//for the player
 	Uint8 AItouched; //for the AI
+	Uint8 replaytouched; //for the replay ghost
 }blockData;
 
 void block_reset(Entity* self) {
@@ -28,6 +29,7 @@ void block_reset(Entity* self) {
 	}
 	bdata->touched = 0;
 	bdata->AItouched = 0;
+	bdata->replaytouched = 0;
 }
 
 void checkpoint_touch(Entity* self, Entity* player) {
@@ -117,6 +119,88 @@ void finish_touch(Entity* self, Entity* player) {
 	}
 }
 
+void grass_touch(Entity* self, Entity* player) {
+	if (!self) {
+		slog("invalid self");
+		return;
+	}
+	blockData* bdata = self->data;
+	if (!bdata) {
+		slog("no data");
+		return;
+	}
+	if (!player) {
+		slog("invalid player");
+		return;
+	}
+	playerData* pdata = player->data;
+	if (!pdata) {
+		slog("no player data");
+		return;
+	}
+	if (bdata->touched && pdata->playerType == playertype_player) {
+		return;
+	}
+	if (bdata->AItouched && pdata->playerType == playertype_ai) {
+		return;
+	}
+	if (bdata->replaytouched && pdata->playerType == playertype_replay) {
+		return;
+	}
+	if (pdata->playerType == playertype_player) {
+		bdata->touched = 1;
+	}
+	else if (pdata->playerType == playertype_ai) {
+		bdata->AItouched = 1;
+	}
+	else if (pdata->playerType == playertype_replay) {
+		bdata->replaytouched = 1;
+	}
+	pdata->surface = 1;
+	//slog("grasstouch");
+	pdata->friction += 0.6;
+}
+
+void booster_touch(Entity* self, Entity* player) {
+	if (!self) {
+		slog("invalid self");
+		return;
+	}
+	blockData* bdata = self->data;
+	if (!bdata) {
+		slog("no data");
+		return;
+	}
+	if (!player) {
+		slog("invalid player");
+		return;
+	}
+	playerData* pdata = player->data;
+	if (!pdata) {
+		slog("no player data");
+		return;
+	}
+	if (bdata->touched && pdata->playerType == playertype_player) {
+		return;
+	}
+	if (bdata->AItouched && pdata->playerType == playertype_ai) {
+		return;
+	}
+	if (bdata->replaytouched && pdata->playerType == playertype_replay) {
+		return;
+	}
+	if (pdata->playerType == playertype_player) {
+		bdata->touched = 1;
+	}
+	else if (pdata->playerType == playertype_ai) {
+		bdata->AItouched = 1;
+	}
+	else if (pdata->playerType == playertype_replay) {
+		bdata->replaytouched = 1;
+	}
+	pdata->friction -= 0.05;
+}
+
 void block_free(Entity* self) {
 	if (!self) {
 		slog("invalid self pointer for block_free");
@@ -155,6 +239,7 @@ Entity* spawn_block(int id) {
 	block->data = bdata;
 	block->scale = gfc_vector3d(1, 1, 1);
 	block->colliding = 1;
+	block->collisionRadius = 20;
 	switch (id) {
 	case 1:
 		block->model = gf3d_model_load("models/platform.model");
@@ -177,6 +262,19 @@ Entity* spawn_block(int id) {
 		block->model = gf3d_model_load_full("models/platform/finish.obj", "models/platform/red.png");
 		block->colliding = 2;
 		block->touch = finish_touch;
+		break;
+	case 7:
+		block->model = gf3d_model_load("models/grass.model");
+		block->touch = grass_touch;
+		block->update = block_reset;
+		break;
+	case 8:
+		block->model = gf3d_model_load_full("models/platform/pole.obj", "models/platform/platform.png");
+		break;
+	case 9:
+		block->model = gf3d_model_load("models/booster.model");
+		block->touch = booster_touch;
+		block->update = block_reset;
 		break;
 	}
 	

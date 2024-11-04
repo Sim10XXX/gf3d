@@ -8,11 +8,15 @@
 
 #include "node.h"
 
+#include "gfc_config.h"
+
 
 mapData* load_map_from_cfg(const char* filename) {
 	SJson* SJmap, * a, *blocklist, *nodelist;
 	Uint8 start;
 	int nodeId;
+	GFC_Vector3D offset = { 0 };
+
 	SJmap = sj_load(filename);
 	if (!SJmap) {
 		slog("Couldn't load filename");
@@ -34,6 +38,9 @@ mapData* load_map_from_cfg(const char* filename) {
 		return 0;
 	}
 
+	if (sj_object_get_vector3d(SJmap, "gridoffset", &offset)) {
+		gfc_vector3d_scale(offset, offset, 20);
+	}
 	
 
 
@@ -76,6 +83,7 @@ mapData* load_map_from_cfg(const char* filename) {
 		if (!sj_object_get_vector3d(a, "scale", &block->scale)) {
 			block->scale = gfc_vector3d(1, 1, 1);
 		}
+		gfc_vector3d_add(block->position, block->position, offset);
 		//sj_object_get_value_as_int(a, "colliding", &block->colliding);
 
 		//slog("c: % i", c);
@@ -144,7 +152,8 @@ mapData* load_map_from_cfg(const char* filename) {
 			nodeList[i].checkpointNode = 1;
 			slog("Node Nodeid: %i", nodeId);
 		}
-		//if ()
+		gfc_vector3d_add(nodeList[i].position, nodeList[i].position, offset);
+		slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(nodeList[i].position));
 	}
 	set_nodes(nodeList);
 
