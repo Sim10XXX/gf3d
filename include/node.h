@@ -5,7 +5,7 @@
 #include "entity.h"
 
 #define MAX_CHECKPOINTS 32
-#define COLLECTION_RADIUS 13
+#define COLLECTION_RADIUS 10
 #define COLLECTION_RADIUS_SQUARED COLLECTION_RADIUS*COLLECTION_RADIUS
 
 
@@ -33,5 +33,7 @@ GFC_Vector3D get_next_node(GFC_Vector3D playerpos); //gives position of the node
 
 void collect_checkpoint(); //Called when AI touches a checkpoint. This will mess things up if the AI somehow collects
 							//checkpoints out of the intended order
+
+void node_respawn_from_checkpoint();
 
 #endif

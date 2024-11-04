@@ -82,6 +82,8 @@ GFC_Vector3D get_next_node(GFC_Vector3D playerpos) {
 	for (i = 0; i < node_manager.nodeMax; i++)
 	{
 		if (!node_manager.nodeList[i].active) continue;
+		
+		
 		if (node_manager.nodeList[i].checkpointNode) break;
 		if (i == node_manager.nodeMax - 1) break;
 		if (gfc_vector3d_magnitude_between_squared(node_manager.nodeList[i].position, playerpos) < COLLECTION_RADIUS_SQUARED) {
@@ -95,6 +97,8 @@ GFC_Vector3D get_next_node(GFC_Vector3D playerpos) {
 			i++;
 			break;
 		}
+		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(node_manager.nodeList[i].position));
+		break;
 	}
 	return node_manager.nodeList[i].position;
 }
@@ -106,6 +110,24 @@ void collect_checkpoint() {
 		if (!node_manager.nodeList[i].active) continue;
 		node_manager.nodeList[i].active = 0;
 		if (node_manager.nodeList[i].checkpointNode) {
+			break;
+		}
+	}
+}
+
+void node_respawn_from_checkpoint() {
+	int i;
+	for (i = 0; i < node_manager.nodeMax; i++)
+	{
+		if (node_manager.nodeList[i].active) break;
+	}
+	i--;
+	for (; i > 0; i--)
+	{
+		if (!node_manager.nodeList[i].checkpointNode) {
+			node_manager.nodeList[i].active = 1;
+		}
+		else {
 			break;
 		}
 	}

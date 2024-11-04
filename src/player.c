@@ -12,6 +12,8 @@
 #define FRICTION 0.005
 #define wheel_radius 1
 #define normal_force_mult 0.59
+#define replay_on 0
+#define ai_on 1
 
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
@@ -45,19 +47,22 @@ int ailogic(Entity* self, GFC_Vector3D nodepos) {
 
 	//should I press forward?
 	if (velocitymag < 0.2) {
-		if (gfc_vector2d_dot_product(facingDir, nodeDir) > 0.5) {
-			inputs |= key_up;
-		}
+		inputs |= key_up;
 	}
-
+	if (gfc_vector2d_dot_product(facingDir, nodeDir) > 0.5) {
+		inputs |= key_up;
+	}
 	//should I brake?
-	if (gfc_vector2d_dot_product(velocityDir, nodeDir) < 0.2) {
+	if (gfc_vector2d_dot_product(velocityDir, nodeDir) < 0) {
 		inputs |= key_down;
+		//slog("brake");
 	}
 
 	//always try to face the next node
 
-	float rotationdeadzone = 0.3;
+	float rotationdeadzone = 0.1 * gfc_random()+0.08;
+
+	
 	if (gfc_vector2d_dot_product(facingDir, nodeDir) < 0) { //if facing away, remove the deadzone
 		rotationdeadzone = 0;
 	}
@@ -67,6 +72,18 @@ int ailogic(Entity* self, GFC_Vector3D nodepos) {
 	}
 	else if (gfc_vector2d_dot_product(facingDir, nodeDirClockwise90) > rotationdeadzone) {
 		inputs |= key_right;
+	}
+
+	//should I respawn?
+	if (velocitymag < 0.3) {
+		pdata->framecount++;
+	}
+	else {
+		pdata->framecount = 0;
+	}
+	if (pdata->framecount > 150) {
+		inputs |= key_respawn;
+		pdata->framecount = 0;
 	}
 
 	return inputs;
@@ -93,6 +110,7 @@ int player_get_inputs(Entity* self) {
 	if (pdata->playerType == playertype_ai) {
 		GFC_Vector3D nodepos;
 		nodepos = get_next_node(self->position);
+		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(nodepos));
 		inputs = ailogic(self, nodepos);
 		return inputs;
 	}
@@ -104,7 +122,7 @@ int player_get_inputs(Entity* self) {
 	if (gfc_input_command_down("walkforward")) {
 		inputs |= key_up;
 	}
-	if (gfc_input_command_down("walkbackward")) {
+	if (gfc_input_command_down("walkback")) {
 		inputs |= key_down;
 	}
 	if (gfc_input_command_down("walkright")) {
@@ -136,7 +154,7 @@ void player_free(Entity* self)
 	}
 
 	free(pdata);
-
+	memset(self, 0, sizeof(Entity));
 }
 
 void player_reset(Entity* self) {
@@ -156,6 +174,12 @@ void player_reset(Entity* self) {
 	pdata->positionVelocity = gfc_vector3d(0, 0, 0);
 	pdata->rotationVelocity = gfc_vector3d(0, 0, 0);
 
+	pdata->currentNormal = gfc_vector3d(0, 0, 0);
+
+	pdata->sliding = 0; 
+	pdata->surface = 0;
+
+
 	self->position = mdata->startBlock->position;
 	self->rotation = mdata->startBlock->rotation;
 	
@@ -172,13 +196,17 @@ void player_turn(Entity* self, float turnmult) {
 	if (pdata->currentNormal.x == 0 && pdata->currentNormal.y == 0 && pdata->currentNormal.z == 0) return;
 	
 	float mag = gfc_vector3d_magnitude(pdata->positionVelocity);
-
-
 	GFC_Vector3D velocityDelta, negativePVelocity, scaledNormal, previouspVelocity;
-	previouspVelocity = pdata->positionVelocity;
+	
 
 	scaledNormal = pdata->currentNormal;
-	gfc_vector3d_set_magnitude(&scaledNormal, 0.05*turnmult);
+	gfc_vector3d_set_magnitude(&scaledNormal, 0.04 * turnmult);
+	//slog("sliding: %i", pdata->sliding);
+	if (pdata->sliding && mag > 0.1){
+		gfc_vector3d_sub(self->rotation, self->rotation, scaledNormal);
+		return;
+	}
+	previouspVelocity = pdata->positionVelocity;
 	//goto test;
 	negativePVelocity = pdata->positionVelocity;
 
@@ -188,14 +216,11 @@ void player_turn(Entity* self, float turnmult) {
 		gfc_vector3d_scale(velocityDelta, velocityDelta, mag);
 	}
 	else{
-		gfc_vector3d_set_magnitude(&negativePVelocity, -0.02);
+		gfc_vector3d_set_magnitude(&negativePVelocity, -0.015);
 		if (mag > 1.5) {
 			gfc_vector3d_scale(velocityDelta, velocityDelta, 1.5/mag);
 		}
 	}
-
-
-	
 
 	gfc_vector3d_add(velocityDelta, velocityDelta, negativePVelocity);
 
@@ -205,17 +230,17 @@ void player_turn(Entity* self, float turnmult) {
 	float theta;
 	theta = acos(gfc_vector3d_dot_product(pdata->positionVelocity, previouspVelocity) / 
 		(gfc_vector3d_magnitude(pdata->positionVelocity) * gfc_vector3d_magnitude(previouspVelocity)));
-	if (!pdata->sliding) { //!pdata->sliding
-		if (isnan(theta)) {
-			slog("oop");
-			return;
-		}
-		gfc_vector3d_set_magnitude(&scaledNormal, theta);
-		//slog("theta: %f", theta);
-		//slog("pos: x: %f, y: %f, z: %f", gfc_vector3d_to_slog(self->position));
-		gfc_vector3d_sub(self->rotation, self->rotation, scaledNormal);
-		//self->rotation.z = -gfc_vector2d_angle(gfc_vector3dxy(pdata->positionVelocity));
+	 //!pdata->sliding
+	if (isnan(theta)) {
+		//slog("oop");
+		return;
 	}
+	gfc_vector3d_set_magnitude(&scaledNormal, theta);
+	//slog("theta: %f", theta);
+	//slog("pos: x: %f, y: %f, z: %f", gfc_vector3d_to_slog(self->position));
+	gfc_vector3d_sub(self->rotation, self->rotation, scaledNormal);
+		//self->rotation.z = -gfc_vector2d_angle(gfc_vector3dxy(pdata->positionVelocity));
+	
 	//float dz, dy, dx;
 	//GFC_Vector3D n;
 	
@@ -338,7 +363,7 @@ void player_think(Entity* self)
 
 	pdata->friction = FRICTION;
 
-	if (!pdata->gameState) {
+	if (!pdata->gameState && pdata->playerType != playertype_ai) {
 		pdata->framecount++;
 	}
 	else if (pdata->currReplay) { //Reached finish line, update saved replay with temp if faster
@@ -363,15 +388,15 @@ void player_think(Entity* self)
 	}
 
 	
-	if (pdata->framecount == 1) { //skip first frame because otherwise bad things happen
+	if (pdata->framecount == 1 && pdata->playerType != playertype_ai) { //skip first frame because otherwise bad things happen
 		return;
 	}
 	if (gfc_input_command_pressed("freecam")) {
-		if (pdata->cameraMode) {
+		if (pdata->cameraMode == 7) {
 			pdata->cameraMode = 0;
 		}
 		else {
-			pdata->cameraMode = 1;
+			pdata->cameraMode = 7;
 		}
 	}
 	if (gfc_input_command_down("restart")) {
@@ -410,22 +435,36 @@ void player_think(Entity* self)
 			append_to_temp_replay(inputs, pdata->currReplay);
 		}
 	}
+	if (pdata->playerType == playertype_player) {
+		if (pdata->cameraMode && inputs) {
+			pdata->camstep += 0.1;
+		}
+		else {
+			pdata->camstep = 0.2;
+		}
+		if (pdata->cameraMode) {
+			gf3d_camera_set_move_step(pdata->camstep);
+		}
+	}
 	
-	if (pdata->cameraMode && inputs) {
-		pdata->camstep += 0.1;
-	}
-	else {
-		pdata->camstep = 0.2;
-	}
-	if (pdata->cameraMode) {
-		gf3d_camera_set_move_step(pdata->camstep);
-	}
 	
+	if ((key_down & inputs) && !pdata->gameState) {
+		pdata->sliding = 1;
+		pdata->friction += 0.2;
+		//slog("yep");
+	}
+	if (pdata->surface) {
+		pdata->sliding = 1;
+		//slog("grass");
+	}
 	if ((key_respawn & inputs) && !pdata->gameState) { //could remove the checks for gamestate
 		Entity* checkpointBlock = mdata->lastCheckpoint;
 		player_reset(self);
 		self->position = checkpointBlock->position;
 		self->rotation = checkpointBlock->rotation;
+		if (pdata->playerType == playertype_ai) {
+			node_respawn_from_checkpoint();
+		}
 		return;
 	}
 
@@ -480,6 +519,31 @@ void player_think(Entity* self)
 		force3d(gfc_vector3d(0, 0, 0),//pdata->relativePos[0],
 			gfc_vector3d(0, 0, -0.02)),
 		self, 0);
+
+	//downforce
+
+	GFC_Vector3D down, forward;
+	float downmag;
+	gfc_vector3d_sub(down, pdata->wheelFL, pdata->aboveFL);
+	gfc_vector3d_sub(forward, pdata->wheelFL, pdata->wheelRL);
+	downmag = gfc_vector3d_dot_product(forward, pdata->positionVelocity) * 0.005;
+	//slog("downmag: %f", downmag);
+	if (downmag > 0.05) {
+		downmag = 0.05;
+	}
+	else if (downmag < 0) {
+		downmag = 0;
+	}
+	if (downmag>0){
+		gfc_vector3d_set_magnitude(&down, downmag);
+		apply_force(
+			force3d(gfc_vector3d(0, 0, 0),//pdata->relativePos[0],
+				down),
+			self, 0);
+	}
+	
+
+	pdata->surface = 0;
 	//pdata->rotationVelocity.x = 0.01;
 	GFC_Vector3D* wheel;
 	int i, j, k, l;
@@ -676,12 +740,17 @@ void player_think(Entity* self)
 	apply_matrix(pmatrix, &facingDir);
 
 	gfc_vector3d_cross_product(&gripForce, pdata->currentNormal, facingDir);
-
-	gfc_vector3d_set_magnitude(&gripForce, gfc_vector3d_dot_product(gripForce,pdata->positionVelocity) * -0.1);
+	float gripforcemag = gfc_vector3d_dot_product(gripForce, pdata->positionVelocity) * -0.1;
+	gfc_vector3d_set_magnitude(&gripForce, gripforcemag);
 	apply_force(
 		force3d(gfc_vector3d(0, 0, 0),//pdata->relativePos[0],
 			gripForce),
 		self, 0);
+	if (gripforcemag < 0.01) {
+		pdata->sliding = 0;
+	}
+
+	
 }
 
 
@@ -717,7 +786,7 @@ void velocity_update(Entity* self) {
 	//friction
 
 	gfc_vector3d_scale(deltaPV, pdata->positionVelocity, pdata->friction);
-	gfc_vector3d_scale(deltaRV, pdata->rotationVelocity, pdata->friction);
+	gfc_vector3d_scale(deltaRV, pdata->rotationVelocity, FRICTION);
 
 	gfc_vector3d_sub(pdata->positionVelocity, pdata->positionVelocity, deltaPV);
 	gfc_vector3d_sub(pdata->rotationVelocity, pdata->rotationVelocity, deltaRV);
@@ -757,7 +826,7 @@ void apply_friction(Entity* self) {
 	}
 	gfc_vector3d_sub(pdata->positionVelocity, pdata->positionVelocity, fvec);
 
-	gfc_vector3d_scale(fvec, pdata->rotationVelocity, pdata->friction);
+	gfc_vector3d_scale(fvec, pdata->rotationVelocity, FRICTION);
 	if (gfc_vector3d_magnitude(fvec) > 0.01) {
 		gfc_vector3d_set_magnitude(&fvec, 0.01);
 	}
@@ -910,13 +979,17 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 		ghostMdata->mapID = mdata->mapID;
 		ghostMdata->startBlock = mdata->startBlock;
 		ghostMdata->totalCheckpoints = mdata->totalCheckpoints;
-		//spawn_player(ghostMdata, playertype_replay);
+		if (replay_on) {
+			spawn_player(ghostMdata, playertype_replay);
+		}
 
 		mapData* aiMdata = gfc_allocate_array(sizeof(mapData), 1);
 		aiMdata->mapID = mdata->mapID;
 		aiMdata->startBlock = mdata->startBlock;
 		aiMdata->totalCheckpoints = mdata->totalCheckpoints;
-		//spawn_player(aiMdata, playertype_ai);
+		if (ai_on) {
+			spawn_player(aiMdata, playertype_ai);
+		}
 	}
 	else if (playerType == playertype_replay) {
 		pdata->currReplay = open_replay(mdata->mapID);

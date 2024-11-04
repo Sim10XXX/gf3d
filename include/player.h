@@ -50,7 +50,7 @@ typedef struct
 	GFC_Vector3D	currentNormal; //of the surface the player is in contact with
 
 	Uint8			sliding; //There should be different turning physics if the car is in a sliding state or not
-
+	Uint8			surface;
 	float			camstep;
 }playerData;
 

@@ -17,6 +17,7 @@ typedef struct Entity_S
 	GFC_Vector3D	rotation;	//rotation, pitch yaw roll
 	GFC_Vector3D	scale;		//stretching
 	Model			*model;		//graphics
+	float			collisionRadius; //don't even check collision outside of this radius, 0 means disabled (always check)
 	//GFC_Box			hitbox;
 	//behavior
 	void (*think)	(struct Entity_S *self);			//called every frame for the entity to decide things
