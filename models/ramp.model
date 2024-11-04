@@ -1,0 +1,7 @@
+{
+    "model":
+    {
+        "obj":"models/platform/ramp.obj",
+        "texture":"models/platform/platform.png"
+    }
+}

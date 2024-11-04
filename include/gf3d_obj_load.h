@@ -92,5 +92,6 @@ void gf3d_obj_free(ObjData *obj);
  */
 int gf3d_obj_edge_test(ObjData *obj,GFC_Matrix4 offset, GFC_Edge3D e,GFC_Vector3D *contact);
 
+Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector4D* vlist, int* vlistc, GFC_Vector3D translation);
 
 #endif

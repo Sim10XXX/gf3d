@@ -34,12 +34,15 @@
 #include "gf3d_mesh.h"
 #include "gf3d_materials.h"
 
+#include "lights.h"
+
 
 //all inclusive of features
 typedef struct
 {
     MeshUBO         mesh;
     MaterialUBO     material;   //this may become an array
+    Light           light;
 }ModelUBO;
 
 /**

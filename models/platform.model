@@ -1,0 +1,7 @@
+{
+    "model":
+    {
+        "obj":"models/platform/platform.obj",
+        "texture":"models/platform/platform.png"
+    }
+}

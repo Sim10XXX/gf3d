@@ -4,7 +4,9 @@
 
 #include "gf3d_obj_load.h"
 
-int gf3d_obj_edge_test(ObjData *obj,GFC_Matrix4 offset, GFC_Edge3D e,GFC_Vector3D *contact)
+#define collisions_max 8
+
+int gf3d_obj_edge_test(ObjData* obj, GFC_Matrix4 offset, GFC_Edge3D e, GFC_Vector3D* contact)
 {
     int i;
     GFC_Vector4D out;
@@ -25,6 +27,153 @@ int gf3d_obj_edge_test(ObjData *obj,GFC_Matrix4 offset, GFC_Edge3D e,GFC_Vector3
         if (gfc_trigfc_angle_edge_test(e,t,contact))return 1;
     }
     return 0;
+}
+
+/*void applymatrix(GFC_Matrix4 matrix, GFC_Vector3D* vec) {
+    GFC_Matrix4 vecmatrix;
+    gfc_matrix4_from_vectors(
+        vecmatrix,
+        *vec,
+        gfc_vector3d(0, 0, 0),
+        gfc_vector3d(1, 1, 1));
+    gfc_matrix4_multiply(
+        vecmatrix,
+        vecmatrix,
+        matrix);
+    gfc_matrix4_to_vectors(
+        vecmatrix,
+        vec,
+        NULL,
+        NULL);
+}*/
+
+Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector4D* vlist, int *vlistc, GFC_Vector3D translation)
+{
+    int i, j;
+    Uint8 f = 0; //return flag
+    GFC_Vector3D contact;
+    GFC_Vector4D out;
+    GFC_Triangle3D t;
+    GFC_Edge3D e1, e2;
+    GFC_Vector3D ab, //vector from a->b, 
+        ac, //vector from a->c, 
+        abxac; //cross product between ab and ac
+    float mult;
+
+    //GFC_Vector3D offtran, offrot, offscale;
+    //gfc_matrix4_to_vectors(offset, &offtran, &offrot, &offscale);
+
+    //slog("Offtra: x: %f, y: %f, z: %f", offtran.x, offtran.y, offtran.z);
+    //slog("Offrot: x: %f, y: %f, z: %f", offrot.x, offrot.y, offrot.z);
+    //slog("Offsca: x: %f, y: %f, z: %f", offscale.x, offscale.y, offscale.z);
+    if ((!obj) || (!obj->outFace))return 0;
+    //if (!vlist) return 0;
+    for (i = 0; i < obj->face_count; i++)
+    {
+        t.a = obj->faceVertices[obj->outFace[i].verts[0]].vertex;
+        t.b = obj->faceVertices[obj->outFace[i].verts[1]].vertex;
+        t.c = obj->faceVertices[obj->outFace[i].verts[2]].vertex;
+        
+        //apply offset
+        if (i == 0) {
+        //    slog("ta bef: x: %f, y: %f, z: %f", t.a.x, t.a.y, t.a.z);
+        }
+        //int ii, jj;
+        //for (ii = 0; ii < 4; ii++) {
+        //    for (jj = 0; jj < 4; jj++) {
+                //slog("mat[%i][%i]= %f", ii, jj, offset[ii][jj]);
+        //    }
+        //}
+        
+        //gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.a, 0));
+        //t.a = gfc_vector4dxyz(out);
+        //gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.b, 0));
+        //t.b = gfc_vector4dxyz(out);
+        //gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(t.c, 0));
+        //t.c = gfc_vector4dxyz(out);
+
+        if (offset == NULL) {
+            gfc_vector3d_add(t.a, t.a, translation);
+            gfc_vector3d_add(t.b, t.b, translation);
+            gfc_vector3d_add(t.c, t.c, translation);
+        }
+        else {
+            apply_matrix(offset, &t.a);
+            apply_matrix(offset, &t.b);
+            apply_matrix(offset, &t.c);
+        }
+        
+
+        if (i == 0)
+        {
+        //    slog("ta aft: x: %f, y: %f, z: %f", t.a.x, t.a.y, t.a.z);
+        }
+            
+
+        //calculate vector perpendicular to triangle
+        
+        
+        gfc_vector3d_sub(ab, t.b, t.a);
+        gfc_vector3d_sub(ac, t.c, t.a);
+        gfc_vector3d_cross_product(&abxac, ab, ac);
+
+        //gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(abxac, 0));
+        //abxac = gfc_vector4dxyz(out);
+
+        //scale vector to the radius of the sphere
+        mult = s.r / gfc_vector3d_magnitude(abxac);
+        gfc_vector3d_scale(abxac, abxac, mult);
+
+        //slog("Offset: x: %f, y: %f, z: %f", abxac.x, abxac.y, abxac.z);
+        //gfc_matrix4_multiply_v(&out, offset, gfc_vector4d(s.x,s.y,s.z, 0));
+        //s.x = out.x;
+        //s.y = out.y;
+        //s.z = out.z;
+
+
+        //create edges based on the vector and the sphere's position
+        gfc_vector3d_add(e1.a, s, abxac);
+        gfc_vector3d_sub(e2.a, s, abxac);
+
+        gfc_vector3d_copy(e1.b, s);
+        gfc_vector3d_copy(e2.b, s);
+
+        /*gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(e1.a, 0));
+        e1.a = gfc_vector4dxyz(out);
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(e1.b, 0));
+        e1.b = gfc_vector4dxyz(out);
+
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(e2.a, 0));
+        e2.a = gfc_vector4dxyz(out);
+        gfc_matrix4_multiply_v(&out, offset, gfc_vector3dw(e2.b, 0));
+        e2.b = gfc_vector4dxyz(out);*/
+
+
+        if (gfc_trigfc_angle_edge_test(e1, t, &contact)) { //swap e1 and e2 for performance
+                                                  //e1 means clipping from inside a face, e2 is the typical collision
+            f = 1;
+            if (!vlist) continue;
+            gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
+            *vlistc += 1;
+            if (*vlistc == collisions_max) {
+                *vlistc = 0;
+            }
+            //slog("e1 hit");
+        }
+        else if (gfc_trigfc_angle_edge_test(e2, t, &contact)) {
+            f = 1;
+            if (!vlist) continue;
+            gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
+            *vlistc += 1;
+            if (*vlistc == collisions_max) {
+                *vlistc = 0;
+            }
+            //slog("e2 hit");
+        }
+
+        
+    }
+    return f;
 }
 
 void gf3d_obj_get_counts_from_file(ObjData *obj, FILE *file);
@@ -553,6 +702,27 @@ ObjData *gf3d_obj_merge(ObjData *ObjA,GFC_Vector3D offsetA,ObjData *ObjB,GFC_Vec
         gfc_vector3d_copy(ObjNew->faceVertices[i + ObjA->face_vert_count].normal,outV);
     }
     return ObjNew;
+}
+
+
+Uint8 gf3d_obj_line_test(ObjData *obj, GFC_Edge3D e, GFC_Vector3D *contact) {
+    int i;
+    Uint32 index;
+    GFC_Triangle3D t;
+    if (!obj) return 0;
+    if (!obj->outFace) return 0;
+    if (!obj->faceVertices) return 0;
+
+    for (i = 0; i < obj->face_count; i++) {
+        index = obj->outFace[i].verts[0];
+        t.a = obj->faceVertices[index].vertex;
+        index = obj->outFace[i].verts[1];
+        t.b = obj->faceVertices[index].vertex;
+        index = obj->outFace[i].verts[2];
+        t.c = obj->faceVertices[index].vertex;
+        if (gfc_trigfc_angle_edge_test(e, t, contact)) return 1;
+    }
+    return 0;
 }
 
 /*eol@eof*/
