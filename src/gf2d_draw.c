@@ -498,11 +498,16 @@ void gf2d_draw_circle(GFC_Vector2D center, int radius, GFC_Color color)
 }
 
 
-void gf2d_draw_shape(GFC_Shape shape,GFC_Color color,GFC_Vector2D offset)
+void gf2d_draw_shape(GFC_Shape shape,GFC_Color color,GFC_Vector2D offset, Uint8 filled)
 {
     switch(shape.type)
     {
         case ST_RECT:
+            if (filled) {
+                gfc_vector2d_add(shape.s.r, shape.s.r, offset);
+                gf2d_draw_rect_filled(shape.s.r, color);
+                break;
+            }
             gfc_vector2d_add(shape.s.r,shape.s.r,offset);
             gf2d_draw_rect(shape.s.r,color);
             break;

@@ -29,6 +29,8 @@
 #include "player.h"
 #include "block.h"
 #include "map.h"
+#include "hud_element.h"
+#include "gamestate.h"
 
 extern int __DEBUG;
 
@@ -118,10 +120,10 @@ int main(int argc,char *argv[])
     gf3d_camera_enable_free_look(1);
     //windows
     entity_system_init(1000);
-    mapData* mdata = load_map_from_cfg("config/map.cfg");
-    player = spawn_player(mdata, playertype_player);
+    //mapData* mdata = load_map_from_cfg("config/map.cfg");
+    //player = spawn_player(mdata, playertype_player);
     
-    playerData* pdata = player->data;
+    //playerData* pdata = player->data;
     //pdata->mapData = ;
     //if (!pdata->mapData) return 400;
     //Entity* startBlock = pdata->mapData->startBlock;
@@ -148,17 +150,19 @@ int main(int argc,char *argv[])
     Entity* stadium = entity_new();
     stadium->model = gf3d_model_load("models/stadium.model");
     stadium->colliding = 1;
-    //stadium->scale = gfc_vector3d(10,10,10);
 
+    hud_system_init("config/hud.cfg", Hud_dynamic_element_max);
+    //stadium->scale = gfc_vector3d(10,10,10);
+    set_pause(1);
     while(!_done)
     {
         gfc_input_update();
         gf2d_mouse_update();
         gf2d_font_update();
         //camera updaes
-        if (pdata->cameraMode == 7) {
-            gf3d_camera_controls_update();
-        }
+        //if (pdata->cameraMode == 7) {
+        //    gf3d_camera_controls_update();
+        //}
         
         gf3d_camera_update_view();
         gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
@@ -167,7 +171,12 @@ int main(int argc,char *argv[])
         
         entity_think_all();
         entity_update_all();
+
         
+        if (gfc_input_command_pressed("pause")) {
+            toggle_pause();
+        }
+            
         
         
         entity_draw_all();
@@ -181,6 +190,7 @@ int main(int argc,char *argv[])
                     0);*/
                 draw_origin();
             //2D draws
+                draw_all_elements();
                 gf2d_mouse_draw();
                 gf2d_font_draw_line_tag("ALT+F4 to exit",FT_H1,GFC_COLOR_WHITE, gfc_vector2d(10,10));
                 
@@ -190,14 +200,14 @@ int main(int argc,char *argv[])
                 //SDL_GetWindowSize(SDL_GL_GetCurrentWindow(), &w, &h);
                 char outputtext[20] = "Speed: ";
                 char speed[10];
-                float s = gfc_vector3d_magnitude(pdata->positionVelocity) * 100;
+                float s = 5.0;//gfc_vector3d_magnitude(pdata->positionVelocity) * 100;
                 sprintf(speed, "%i", _cvt_ftoi_fast(s));
                 
 
                 strcat(outputtext, speed);
                 //slog("String: %s", outputtext);
-                gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w - 8, h - 8));
-                gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w-10, h-10));
+               // gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w - 8, h - 8));
+                //gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w-10, h-10));
 
 
                 //draw current time
@@ -205,7 +215,7 @@ int main(int argc,char *argv[])
                 //char time[10];
                 //sprintf(time, "%i", pdata->framecount);
                 
-                
+                /*
                 if (pdata->gameState == 0) {
                     sprintf(outputtext, "Time: %.2f", (pdata->framecount) / 30.0);
                     gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h - 8));
@@ -220,7 +230,7 @@ int main(int argc,char *argv[])
                     }
                     gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_BLACK, gfc_vector2d(w / 2, h / 2 - 8));
                     gf2d_font_draw_line_tag(outputtext, FT_Large, GFC_COLOR_WHITE, gfc_vector2d(w / 2 - 2, h / 2 - 10));
-                }
+                }*/
                 
 
 

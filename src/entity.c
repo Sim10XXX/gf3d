@@ -8,11 +8,13 @@
 
 #include "node.h"
 
+#include "hud_element.h"
 
 typedef struct
 {
 	Entity *entityList; //big a** list
 	Uint32 entityMax;
+	Uint8 pause;
 }EntityManager;
 
 static EntityManager entity_manager = {0};
@@ -96,6 +98,7 @@ void entity_think(Entity *self)
 void entity_think_all()
 {
 	int i;
+	if (entity_manager.pause) return;
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse) continue; //
@@ -113,11 +116,20 @@ void entity_update(Entity* self)
 void entity_update_all()
 {
 	int i;
+	Uint32 s;
+	int x, y;
+	s = SDL_GetMouseState(&x, &y);
+	if (SDL_BUTTON(s) == SDL_BUTTON_LEFT) {
+		check_click(x, y);
+	}
+	if (entity_manager.pause) return;
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse)continue; //
 		entity_update(&entity_manager.entityList[i]);
 	}
+	
+	
 }
 
 /*
@@ -253,3 +265,4 @@ void entity_reset() {
 		entity_manager.entityList[i].reset(&entity_manager.entityList[i]);
 	}
 }
+

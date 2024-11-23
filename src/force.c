@@ -7,6 +7,8 @@
 
 #define torque_mult 0.05 //used to scale the rotational force by some constant
 
+#define draw_forces 0
+
 Force3D force3d(GFC_Vector3D origin, GFC_Vector3D forceVector) {
 	Force3D force;
 	gfc_vector3d_set(force.origin, origin.x, origin.y, origin.z);
@@ -136,8 +138,10 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 			gfc_vector3d(1, 1, 1));
 		apply_matrix(rotmatrix, &force.forceVector);
 	}
-
-	draw_force(force, self, gfc_color(1, 0, 1, 1));
+	if (draw_forces) {
+		draw_force(force, self, gfc_color(1, 0, 1, 1));
+	}
+	
 
 	//calculate torque (change in rotational velocity)
 	GFC_Vector3D torque = {0};

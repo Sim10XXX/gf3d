@@ -25,7 +25,7 @@ void gf2d_draw_manager_update();
  * @param color the color to draw with
  * @param offset a positional offset to draw the space at
  */
-void gf2d_draw_shape(GFC_Shape shape,GFC_Color color,GFC_Vector2D offset);
+void gf2d_draw_shape(GFC_Shape shape,GFC_Color color,GFC_Vector2D offset, Uint8 filled);
 
 /**
  * @brief draw a pixel to the current rendering context

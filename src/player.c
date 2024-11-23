@@ -8,6 +8,7 @@
 #include "force.h"
 #include "replay.h"
 #include "node.h"
+#include "gamestate.h"
 
 #define FRICTION 0.005
 #define wheel_radius 1
@@ -352,7 +353,7 @@ GFC_Vector4D multiplyQuaternions(GFC_Vector4D q1, GFC_Vector4D q2) {
 }*/
 void player_think(Entity* self) 
 {
-	
+	if (is_paused()) return;
 	if (!self)return;
 	playerData* pdata = self->data;
 	if (!pdata)return;
@@ -838,6 +839,7 @@ void player_update(Entity* self)
 {
 	GFC_Vector3D lookTarget, camera, dir = { 0 };
 	playerData* pdata;
+	if (is_paused()) return;
 	if (!self) return;
 	if (!self->data)return;
 	pdata = self->data;
@@ -847,7 +849,10 @@ void player_update(Entity* self)
 	//update_hitbox(self);
 	apply_friction(self);
 	
-	
+	if (pdata->playerType == playertype_player) {
+		set_framecount(pdata->framecount);
+		set_speed(_cvt_ftoi_fast(gfc_vector3d_magnitude(pdata->positionVelocity) * 100));
+	}
 
 	gfc_vector3d_copy(lookTarget, self->position);
 	lookTarget.z += 1;
@@ -858,6 +863,9 @@ void player_update(Entity* self)
 		gfc_vector3d_sub(camera, self->position, dir);
 		camera.z += 10;
 		gf3d_camera_look_at(lookTarget, &camera);
+	}
+	else if (pdata->playerType == playertype_player && pdata->cameraMode == 7) {
+	    gf3d_camera_controls_update();
 	}
 	
 

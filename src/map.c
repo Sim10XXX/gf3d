@@ -158,5 +158,6 @@ mapData* load_map_from_cfg(const char* filename) {
 	set_nodes(nodeList);
 
 	free(nodeList);
+	free(SJmap);
 	return mdata;
 }
