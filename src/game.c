@@ -147,13 +147,13 @@ int main(int argc,char *argv[])
     //}
 
     // main game loop    
-    Entity* stadium = entity_new();
-    stadium->model = gf3d_model_load("models/stadium.model");
-    stadium->colliding = 1;
+    //Entity* stadium = entity_new();
+    //stadium->model = gf3d_model_load("models/stadium.model");
+    //stadium->colliding = 1;
 
     hud_system_init("config/hud.cfg", Hud_dynamic_element_max);
     //stadium->scale = gfc_vector3d(10,10,10);
-    set_pause(1);
+    //set_pause(1);
     while(!_done)
     {
         gfc_input_update();
@@ -164,14 +164,15 @@ int main(int argc,char *argv[])
         //    gf3d_camera_controls_update();
         //}
         
-        gf3d_camera_update_view();
-        gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
+        
         
         gf3d_vgraphics_render_start();
         
         entity_think_all();
         entity_update_all();
 
+        gf3d_camera_update_view();
+        gf3d_camera_get_view_mat4(gf3d_vgraphics_get_view_matrix());
         
         if (gfc_input_command_pressed("pause")) {
             toggle_pause();
@@ -192,19 +193,19 @@ int main(int argc,char *argv[])
             //2D draws
                 draw_all_elements();
                 gf2d_mouse_draw();
-                gf2d_font_draw_line_tag("ALT+F4 to exit",FT_H1,GFC_COLOR_WHITE, gfc_vector2d(10,10));
+                //gf2d_font_draw_line_tag("ALT+F4 to exit",FT_H1,GFC_COLOR_WHITE, gfc_vector2d(10,10));
                 
                 //draw speed text
 
-                int w = 1050, h = 680;
+                //int w = 1050, h = 680;
                 //SDL_GetWindowSize(SDL_GL_GetCurrentWindow(), &w, &h);
-                char outputtext[20] = "Speed: ";
-                char speed[10];
-                float s = 5.0;//gfc_vector3d_magnitude(pdata->positionVelocity) * 100;
-                sprintf(speed, "%i", _cvt_ftoi_fast(s));
+                //char outputtext[20] = "Speed: ";
+                //char speed[10];
+                //float s = 5.0;//gfc_vector3d_magnitude(pdata->positionVelocity) * 100;
+                //sprintf(speed, "%i", _cvt_ftoi_fast(s));
                 
 
-                strcat(outputtext, speed);
+                //strcat(outputtext, speed);
                 //slog("String: %s", outputtext);
                // gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_BLACK, gfc_vector2d(w - 8, h - 8));
                 //gf2d_font_draw_line_tag(outputtext, FT_H1, GFC_COLOR_WHITE, gfc_vector2d(w-10, h-10));

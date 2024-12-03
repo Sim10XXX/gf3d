@@ -9,6 +9,7 @@
 #include "entity.h"
 #include "player.h"
 #include "gamestate.h"
+#include "editor.h"
 
 
 typedef struct
@@ -53,6 +54,16 @@ void set_elements_state(Uint8 elementmask) {
 		slog("emask: %i", elementmask);
 		//slog("res: %i", hud_manager.hudElementList[i].element_type & elementmask);
 	}
+	if (elementmask & EDITOR_STATE) {
+		set_editormode(true);
+	}
+	else {
+		set_editormode(false);
+	}
+	if (elementmask & START_ELEMENT) {
+		entity_free_all();
+		set_pause(false);
+	}
 	slog_all_elements();
 }
 
@@ -60,17 +71,26 @@ void start_map(Hud_Element *self) {
 	if (!self) return;
 	if (!self->filename) return;
 	mapData* mdata = load_map_from_cfg(self->filename->buffer);
-	spawn_player(mdata, playertype_player);
+	if (!get_editormode()) {
+		spawn_player(mdata, playertype_player);
+	}
+	else {
+		editor_spawn(mdata);
+	}
+	
 	set_pause(0);
 	set_elements_state(GAME_ELEMENT);
 	//playerData* pdata = player->data;
 }
 
 void load_map_elements();
-void open_map_select() {
-	load_map_elements();
-	set_elements_state(MAP_SELECT_ELEMENT);
-	slog_all_elements();
+
+void open_elements(Hud_Element *self, Uint8 mask) {
+	if (mask & MAP_SELECT_ELEMENT) {
+		load_map_elements();
+	}
+	set_elements_state(mask);
+	//slog_all_elements();
 }
 
 void hud_system_init(const char* filename, int max_dynamic_elements)
@@ -128,20 +148,22 @@ void hud_system_init(const char* filename, int max_dynamic_elements)
 			sj_object_get_vector4d(a, "textcolor", &vec);
 			hud_manager.hudElementList[i].textcolor = gfc_color_from_vector4(vec);
 		}
-		sj_object_get_int(a, "element_type", &hud_manager.hudElementList[i].element_type);
-
+		
 		int cl;
 		sj_object_get_int(a, "click", &cl);
 		switch (cl) {
 		case 0:
 			//hud_manager.hudElementList[i].click = start_map;
 			//hud_manager.hudElementList[i].filename = gfc_string("config/map.cfg");
-			hud_manager.hudElementList[i].click = open_map_select;
+			hud_manager.hudElementList[i].click = open_elements;
 		}
+		sj_object_get_uint8(a, "element_type", &hud_manager.hudElementList[i].element_type);
+		sj_object_get_uint8(a, "set_elements", &hud_manager.hudElementList[i].mask);
+		slog("elementtype: %i", hud_manager.hudElementList[i].element_type);
 		hud_manager.hudElementList[i]._inuse = 1;
 
 	}
-	
+	set_elements_state(START_ELEMENT);
 }
 
 void element_draw(Hud_Element *self) {
@@ -174,7 +196,12 @@ void draw_all_elements() {
 	for (i = 0; i < hud_manager.hudElementMax; i++)
 	{
 		if (!hud_manager.hudElementList[i]._inuse) continue;
-		if (!hud_manager.hudElementList[i].visible) continue; //
+		if (!is_paused()) {
+			if (!hud_manager.hudElementList[i].visible) continue;
+		}
+		else {
+			if (hud_manager.hudElementList[i].element_type != PAUSE_ELEMENT && !hud_manager.hudElementList[i].visible) continue;
+		}
 		element_draw(&hud_manager.hudElementList[i]);
 	}
 }
@@ -187,11 +214,17 @@ void check_click(int x, int y) {
 	for (i = hud_manager.hudElementMax-1; i >= 0; i--)
 	{
 		if (!hud_manager.hudElementList[i]._inuse) continue;
-		if (!hud_manager.hudElementList[i].visible) continue; //
+		if (!is_paused()) {
+			if (!hud_manager.hudElementList[i].visible) continue;
+		}
+		else {
+			if (hud_manager.hudElementList[i].element_type != PAUSE_ELEMENT && !hud_manager.hudElementList[i].visible) continue;
+		}
 		if (!hud_manager.hudElementList[i].shape) continue;
+		if (!hud_manager.hudElementList[i].click) continue;
 		if (gfc_point_in_shape(gfc_vector2d(pos.x- hud_manager.hudElementList[i].position.x, pos.y - hud_manager.hudElementList[i].position.y), *hud_manager.hudElementList[i].shape)) {
 			//start_map("config/map.cfg");
-			hud_manager.hudElementList[i].click(&hud_manager.hudElementList[i]);
+			hud_manager.hudElementList[i].click(&hud_manager.hudElementList[i], hud_manager.hudElementList[i].mask);
 		}
 	}
 }
@@ -224,7 +257,7 @@ void load_map_elements() {
 				hud_manager.hudElementList[j]._inuse = 1;
 				hud_manager.hudElementList[j].text = text;
 				hud_manager.hudElementList[j].filename = gfc_string(buffer);
-				hud_manager.hudElementList[j].position = gfc_vector2d(50, 50+hits*50);
+				hud_manager.hudElementList[j].position = gfc_vector2d(50, 50+hits*55);
 				GFC_Shape* s = malloc(sizeof(GFC_Shape));
 				if (s) {
 					*s = gfc_shape_rect(-10, -10, 500, 50);

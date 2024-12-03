@@ -10,11 +10,16 @@
 
 #include "hud_element.h"
 
+#include "gamestate.h"
+
+#include "block.h"
+
 typedef struct
 {
 	Entity *entityList; //big a** list
 	Uint32 entityMax;
 	Uint8 pause;
+	Uint32 currIndex; //for get_next_block()
 }EntityManager;
 
 static EntityManager entity_manager = {0};
@@ -71,7 +76,7 @@ void entity_draw(Entity *self)
 	gf3d_model_draw(
 		self->model,
 		matrix,
-		GFC_COLOR_WHITE,
+		self->colormod,
 		0);
 	//slog("ya");
 	//slog(self->model);
@@ -128,8 +133,10 @@ void entity_update_all()
 		if (!entity_manager.entityList[i]._inuse)continue; //
 		entity_update(&entity_manager.entityList[i]);
 	}
-	
-	
+	/*if (is_paused() == 1) {
+		set_elements_state(GAME_ELEMENT+PAUSE_ELEMENT);
+		set_pause(2);
+	}*/
 }
 
 /*
@@ -224,6 +231,7 @@ Entity *entity_new()
 		memset(&entity_manager.entityList[i], 0, sizeof(Entity)); //clear it out in case anything was still there
 		entity_manager.entityList[i]._inuse = 1;
 		entity_manager.entityList[i].scale = gfc_vector3d(1, 1, 1);
+		entity_manager.entityList[i].colormod = GFC_COLOR_WHITE;
 
 		//any default values should be set
 		return &entity_manager.entityList[i];
@@ -266,3 +274,94 @@ void entity_reset() {
 	}
 }
 
+void entity_free_all() {
+	int i;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue; //
+		entity_free(&entity_manager.entityList[i]);
+	}
+	node_system_close();
+}
+
+Entity* get_next_block() {
+	int i;
+	entity_manager.currIndex--;
+	while (entity_manager.currIndex+1 < entity_manager.entityMax) {
+		entity_manager.currIndex++;
+		i = entity_manager.currIndex;
+		if (!entity_manager.entityList[i]._inuse) continue;
+		if (!entity_manager.entityList[i].isBlock) continue;
+		entity_manager.currIndex++;
+		return &entity_manager.entityList[i];
+	}
+	entity_manager.currIndex = 0;
+	return 0;
+}
+
+Uint8 test_range(Entity self, GFC_Vector3D minposition, GFC_Vector3D maxposition) {
+	if (self.position.x > minposition.x &&
+		self.position.y > minposition.y &&
+		self.position.z > minposition.z &&
+		self.position.x < maxposition.x &&
+		self.position.y < maxposition.y &&
+		self.position.z < maxposition.z) {
+		return 1;
+	}
+	return 0;
+
+}
+void delete_blocks_in_range(GFC_Vector3D minposition, GFC_Vector3D maxposition) {
+	int i;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue; //
+		if (!entity_manager.entityList[i].isBlock) continue;
+		if (gfc_color_cmp(entity_manager.entityList[i].colormod, GFC_COLOR_LIGHTGREEN)) continue; //do not delete the editor's selected block
+		if (test_range(entity_manager.entityList[i], minposition, maxposition)) {
+			entity_free(&entity_manager.entityList[i]);
+		}
+	}
+}
+
+Entity* get_closest_block(Uint8 checkpointorfinish, float maxrange, GFC_Vector3D position) {
+	int i;
+	Entity* minent = 0;
+	float dist = INFINITY;
+	maxrange = maxrange * maxrange;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue; //
+		if (!entity_manager.entityList[i].isBlock) continue;
+		if (checkpointorfinish) {
+			if (CHECKPOINT_ID != bdata_get_id(&entity_manager.entityList[i])) {
+				if (FINISH_ID != bdata_get_id(&entity_manager.entityList[i])) continue;
+			}
+		}
+		float d = gfc_vector3d_magnitude_between_squared(position, entity_manager.entityList[i].position);
+		if (d > maxrange) continue;
+		if (d > dist) continue;
+		minent = &entity_manager.entityList[i];
+		dist = d;
+	}
+	return minent;
+}
+
+void delete_duplicate_blocks() {
+	int i, j;
+	for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse)continue; //
+		if (!entity_manager.entityList[i].isBlock) continue;
+		for (j = 0; j < entity_manager.entityMax; j++)
+		{
+			if (!entity_manager.entityList[j]._inuse)continue; //
+			if (!entity_manager.entityList[j].isBlock) continue;
+			if (i == j) continue;
+			if (compare_blocks(&entity_manager.entityList[i], &entity_manager.entityList[j])) {
+				entity_free(&entity_manager.entityList[j]);
+				break;
+			}
+		}
+	}
+}

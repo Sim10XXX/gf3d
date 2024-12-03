@@ -10,6 +10,8 @@
 
 #include "gfc_config.h"
 
+#include "gamestate.h"
+
 
 mapData* load_map_from_cfg(const char* filename) {
 	SJson* SJmap, * a, *blocklist, *nodelist;
@@ -53,6 +55,7 @@ mapData* load_map_from_cfg(const char* filename) {
 	mdata->hasNodes = 0;
 	//GFC_Vector3D grid;
 	for (i = 0; i < c; i++) {
+		slog("a1");
 		a = sj_array_get_nth(blocklist, i);
 		if (!a) continue;
 		int id;
@@ -75,7 +78,9 @@ mapData* load_map_from_cfg(const char* filename) {
 		}
 
 		if (!sj_object_get_vector3d(a, "rotation", &block->rotation)) {
-			block->rotation = gfc_vector3d(0, 0, 0);
+			if (!sj_object_get_vector3d(a, "rotationradians", &block->rotation)) {
+				block->rotation = gfc_vector3d(0, 0, 0);
+			}
 		}
 		else {
 			gfc_vector3d_scale(block->rotation, block->rotation, GFC_DEGTORAD);
@@ -93,10 +98,15 @@ mapData* load_map_from_cfg(const char* filename) {
 		if (id == 5) {
 			mdata->totalCheckpoints++;
 		}
+		slog("a2");
 		if (sj_object_get_value_as_uint8(a, "start", &start)) {
 			if (start) {
 				mdata->startBlock = block;
 				mdata->lastCheckpoint = block;
+				if (get_editormode()) {
+					block->colormod = GFC_COLOR_RED;
+				}
+				bdata_set_start(block, 1);
 			}
 		}
 
@@ -110,12 +120,15 @@ mapData* load_map_from_cfg(const char* filename) {
 		}
 
 	}
-	if (!mdata->startBlock) {
+	if (!mdata->startBlock && !get_editormode()) {
 		slog("Invalid map, no start found");
 		return NULL;
 	}
 
 	c = sj_array_get_count(nodelist);
+	if (get_editormode()) {
+		c = UINT8_MAX;
+	}
 	//Entity* block;
 	//GFC_Vector3D grid;
 
@@ -132,8 +145,6 @@ mapData* load_map_from_cfg(const char* filename) {
 	for (i = 0; i < c; i++) {
 		a = sj_array_get_nth(nodelist, i);
 		if (!a) continue;
-
-
 
 		if (sj_object_get_vector3d(a, "grid", &nodeList[i].position)) {
 			gfc_vector3d_scale(nodeList[i].position, nodeList[i].position, 20);
@@ -154,10 +165,74 @@ mapData* load_map_from_cfg(const char* filename) {
 		}
 		gfc_vector3d_add(nodeList[i].position, nodeList[i].position, offset);
 		slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(nodeList[i].position));
+		nodeList[i]._inuse = 1;
 	}
 	set_nodes(nodeList);
 
 	free(nodeList);
 	free(SJmap);
+	Entity* stadium = entity_new();
+	stadium->model = gf3d_model_load("models/stadium.model");
+	stadium->colliding = 1;
+
 	return mdata;
+}
+
+int convert_current_entities_into_map(int id) {
+	Entity* block;
+	SJson* sj, *sjtest, *blockar, *nodear;
+	int i;
+	char buffer[20];
+	delete_duplicate_blocks();
+
+	sj = sj_object_new();
+	sj_object_insert(sj, "title", sj_new_str("sample title"));
+
+
+	blockar = sj_array_new();
+	while (block = get_next_block()) {
+		sj_array_append(blockar, block_to_json(block));
+	}
+	sj_object_insert(sj, "blocks", blockar);
+	
+	nodear = sj_array_new();
+	//if (!nodear) {
+	//	slog("bruhhh");
+	//}
+	//slog("sj: %i", nodear->sjtype);
+	//slog("fff");
+	Node* node;
+	int nodeid = 0;
+	while (node = iter_get_next_node(&nodeid)) {
+		slog("wwd");
+		sj_array_append(nodear, node_to_json(node, nodeid));
+	}
+	//slog("why does it crash");
+	sj_object_insert(sj, "nodes", nodear);
+
+
+
+	if (id != 0) {
+		i = id;
+		sprintf(buffer, "maps/map%i.tmap", i);
+	}
+	else {
+		for (i = 0;; i++) {
+			sprintf(buffer, "maps/map%i.tmap", i);
+			if ((sjtest = sj_load(buffer)) != NULL) {
+				sj_free(sjtest);
+			}
+			else {
+				break;
+			}
+		}
+	}
+	sj_object_insert(sj, "mapID", sj_new_int(i));
+	
+	sj_save(sj, buffer);
+	sj_free(sj);
+	slog("a4");
+
+
+	return i;
 }

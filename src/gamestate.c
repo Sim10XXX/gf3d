@@ -29,3 +29,11 @@ void set_speed(int v) {
 Uint8 is_paused() {
 	return gamestate.pause;
 }
+
+void set_editormode(Uint8 v) {
+	gamestate.editormode = v;
+}
+
+Uint8 get_editormode() {
+	return gamestate.editormode;
+}

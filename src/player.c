@@ -14,7 +14,7 @@
 #define wheel_radius 1
 #define normal_force_mult 0.59
 #define replay_on 0
-#define ai_on 1
+#define ai_on 0
 
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
@@ -839,10 +839,26 @@ void player_update(Entity* self)
 {
 	GFC_Vector3D lookTarget, camera, dir = { 0 };
 	playerData* pdata;
-	if (is_paused()) return;
+	
 	if (!self) return;
 	if (!self->data)return;
 	pdata = self->data;
+	gfc_vector3d_copy(lookTarget, self->position);
+	lookTarget.z += 1;
+	dir.y = 30.0;
+	if (pdata->playerType == playertype_player && pdata->cameraMode == 0) {
+		gfc_vector3d_rotate_about_z(&dir, self->rotation.z);
+		gfc_vector3d_sub(camera, self->position, dir);
+		camera.z += 10;
+		gf3d_camera_look_at(lookTarget, &camera);
+	}
+	else if (pdata->playerType == playertype_player && pdata->cameraMode == 7) {
+		gf3d_camera_controls_update();
+	}
+
+	if (is_paused()) return;
+
+	
 
 	move_player(self);
 	//velocity_update(self);
@@ -854,19 +870,9 @@ void player_update(Entity* self)
 		set_speed(_cvt_ftoi_fast(gfc_vector3d_magnitude(pdata->positionVelocity) * 100));
 	}
 
-	gfc_vector3d_copy(lookTarget, self->position);
-	lookTarget.z += 1;
-	dir.y = 30.0;
+	
 
-	if (pdata->playerType == playertype_player && pdata->cameraMode == 0) {
-		gfc_vector3d_rotate_about_z(&dir, self->rotation.z);
-		gfc_vector3d_sub(camera, self->position, dir);
-		camera.z += 10;
-		gf3d_camera_look_at(lookTarget, &camera);
-	}
-	else if (pdata->playerType == playertype_player && pdata->cameraMode == 7) {
-	    gf3d_camera_controls_update();
-	}
+	
 	
 
 	//update wheel pos

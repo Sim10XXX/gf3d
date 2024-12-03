@@ -12,11 +12,13 @@ typedef struct Entity_S
 {
 	Uint8			_inuse;		//flag for memory management
 	Uint8			colliding;
-	GFC_TextLine	name;		//name of entity
+	//GFC_TextLine	name;		//name of entity
 	GFC_Vector3D	position;	//where am I
 	GFC_Vector3D	rotation;	//rotation, pitch yaw roll
 	GFC_Vector3D	scale;		//stretching
 	Model			*model;		//graphics
+	Uint8			isBlock;
+	GFC_Color		colormod;
 	float			collisionRadius; //don't even check collision outside of this radius, 0 means disabled (always check)
 	//GFC_Box			hitbox;
 	//behavior
@@ -62,6 +64,14 @@ Entity* entity_new();
  */
 void entity_free(Entity* self);
 
-//Entity* get_block_with_
+void entity_free_all();
+
+Entity* get_next_block();
+
+Entity* get_closest_block(Uint8 checkpointorfinish, float maxrange, GFC_Vector3D position);
+
+void delete_blocks_in_range(GFC_Vector3D minposition, GFC_Vector3D maxposition);
+
+void delete_duplicate_blocks();
 
 #endif

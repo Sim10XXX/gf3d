@@ -15,6 +15,7 @@ typedef struct
 	Uint8			active; //AI should chase active nodes
 	Uint8			checkpointNode; //If the node references a checkpoint or finish
 	Entity*			block; //The referenced checkpoint or finish
+	Uint8			_inuse;
 }Node;
 // The efficacy of the nodes entirely depends on how they are placed
 // The AI will go through the nodes mostly inorder of their creation
@@ -35,5 +36,15 @@ void collect_checkpoint(); //Called when AI touches a checkpoint. This will mess
 							//checkpoints out of the intended order
 
 void node_respawn_from_checkpoint();
+
+Node* spawn_node(GFC_Vector3D pos);
+
+void node_free(Node* node);
+
+void delete_near_nodes(GFC_Vector3D pos, float range);
+
+Node* iter_get_next_node(int* nodeid);
+
+SJson* node_to_json(Node* node, int nodeid);
 
 #endif
