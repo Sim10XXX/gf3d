@@ -126,6 +126,10 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 	//thus the force is scaled by  inverseDistSquared  (for now)
 
 	gfc_vector3d_scale(delta, force.forceVector, inverseDistSquared);
+
+	if (pdata->effectSlowMoTime) {
+		gfc_vector3d_scale(delta, delta, SLOWMOFACTOR);
+	}
 	gfc_vector3d_add(pdata->positionVelocity, pdata->positionVelocity, delta);
 	
 	
@@ -161,6 +165,10 @@ void apply_force(Force3D force, Entity* self, Uint8 makeRelative) {
 	f.origin = gfc_vector2d(force.origin.y, force.origin.z);
 	f.forceVector = gfc_vector2d(force.forceVector.y, force.forceVector.z);
 	torque.y = calculate_torque(f);
+
+	if (pdata->effectSlowMoTime) {
+		gfc_vector3d_scale(torque, torque, SLOWMOFACTOR);
+	}
 
 	gfc_vector3d_add(pdata->rotationVelocity, pdata->rotationVelocity, torque);
 }

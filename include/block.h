@@ -6,6 +6,12 @@
 
 #define CHECKPOINT_ID 5
 #define FINISH_ID 6
+#define EFFECT_GATE_REACTOR_ID 10
+#define EFFECT_GATE_SLOWMO_ID 11
+#define EFFECT_GATE_CRUISECONTROL_ID 12
+#define EFFECT_GATE_ENGINEOFF_ID 13
+#define EFFECT_GATE_RESET_ID 14
+#define MAX_ID 14
 
 Entity* spawn_block(int id);
 

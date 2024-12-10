@@ -11,6 +11,7 @@
 #include "block.h"
 
 #include "node.h"
+#include "gfc_matrix.h"
 
 //#include "gamestate.h"
 
@@ -83,6 +84,10 @@ void checkpoint_touch(Entity* self, Entity* player) {
 		//slog("collected by ai");
 	}
 	mdata->lastCheckpoint = self;
+
+	pdata->effectCruiseControl = 0;
+	pdata->effectEngineOff = 0;
+	pdata->effectSlowMoTime = 0;
 }
 
 void finish_touch(Entity* self, Entity* player) {
@@ -208,6 +213,64 @@ void booster_touch(Entity* self, Entity* player) {
 	pdata->friction -= 0.05;
 }
 
+void effect_gate_touch(Entity* self, Entity* player) {
+	if (!self) {
+		slog("invalid self");
+		return;
+	}
+	blockData* bdata = self->data;
+	if (!bdata) {
+		slog("no data");
+		return;
+	}
+	if (!player) {
+		slog("invalid player");
+		return;
+	}
+	playerData* pdata = player->data;
+	if (!pdata) {
+		slog("no player data");
+		return;
+	}
+	switch (bdata->id) {
+	case EFFECT_GATE_CRUISECONTROL_ID:
+		pdata->CruiseControlSpeed = gfc_vector3d_magnitude(pdata->positionVelocity);
+		pdata->effectCruiseControl = 1;
+		break;
+	case EFFECT_GATE_ENGINEOFF_ID:
+		pdata->effectEngineOff = 1;
+		break;
+	case EFFECT_GATE_REACTOR_ID:
+		pdata->effectReactorTime = 10 * 30;
+		GFC_Matrix4 blockMatrix;
+		gfc_matrix4_from_vectors(
+			blockMatrix,
+			self->position,
+			self->rotation,
+			self->scale);
+		GFC_Vector3D blockForward = gfc_vector3d(0, 1, 0);
+		apply_matrix(blockMatrix, &blockForward);
+		
+		if (gfc_vector3d_dot_product(pdata->forward, blockForward) < 0) {
+			pdata->reactorDir = 1;
+		}
+		else {
+			pdata->reactorDir = -1;
+		}
+		break;
+	case EFFECT_GATE_SLOWMO_ID:
+		pdata->effectSlowMoTime = 10 * 30;
+		break;
+	case EFFECT_GATE_RESET_ID:
+		pdata->effectCruiseControl = 0;
+		pdata->effectEngineOff = 0;
+		pdata->effectReactorTime = 0;
+		pdata->effectSlowMoTime = 0;
+		break;
+	}
+
+}
+
 void block_free(Entity* self) {
 	if (!self) {
 		slog("invalid self pointer for block_free");
@@ -263,12 +326,16 @@ Entity* spawn_block(int id) {
 		block->model = gf3d_model_load_full("models/platform/gate.obj", "models/platform/platform.png");
 		break;
 	case CHECKPOINT_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/blue.png");
+		//block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/blue.png");
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_BLUE;
 		block->colliding = 2;
 		block->touch = checkpoint_touch;
 		break;
 	case FINISH_ID:
-		block->model = gf3d_model_load_full("models/platform/finish.obj", "models/platform/red.png");
+		//block->model = gf3d_model_load_full("models/platform/finish.obj", "models/platform/red.png");
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_RED;
 		block->colliding = 2;
 		block->touch = finish_touch;
 		break;
@@ -285,7 +352,40 @@ Entity* spawn_block(int id) {
 		block->touch = booster_touch;
 		block->update = block_reset;
 		break;
+	case EFFECT_GATE_CRUISECONTROL_ID:
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_DARKBLUE;
+		block->colliding = 2;
+		block->touch = effect_gate_touch;
+		break;
+	case EFFECT_GATE_ENGINEOFF_ID:
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_MAGENTA;
+		block->colliding = 2;
+		block->touch = effect_gate_touch;
+		break;
+	case EFFECT_GATE_REACTOR_ID:
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_ORANGE;
+		block->colliding = 2;
+		block->touch = effect_gate_touch;
+		break;
+	case EFFECT_GATE_RESET_ID:
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_GREEN;
+		block->colliding = 2;
+		block->touch = effect_gate_touch;
+		break;
+	case EFFECT_GATE_SLOWMO_ID:
+		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
+		block->colormod = GFC_COLOR_GREY;
+		block->colliding = 2;
+		block->touch = effect_gate_touch;
+		break;
+
+
 	}
+	
 	bdata->id = id;
 		//gf3d_model_load("models/primitives/cube.obj");
 	block->free = block_free;

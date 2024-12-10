@@ -13,6 +13,11 @@
 #define FRICTION 0.005
 #define wheel_radius 1
 #define normal_force_mult 0.59
+#define REACTOR_UP_FORCE 0.03
+#define REACTOR_DOWN_FORCE 0.05
+#define TURNING_NEG_VELOCITY_FACTOR -0.013
+
+
 #define replay_on 0
 #define ai_on 0
 
@@ -180,6 +185,11 @@ void player_reset(Entity* self) {
 	pdata->sliding = 0; 
 	pdata->surface = 0;
 
+	pdata->effectCruiseControl = 0;
+	pdata->effectEngineOff = 0;
+	pdata->effectReactorTime = 0;
+	pdata->effectSlowMoTime = 0;
+
 
 	self->position = mdata->startBlock->position;
 	self->rotation = mdata->startBlock->rotation;
@@ -194,6 +204,10 @@ void player_turn(Entity* self, float turnmult) {
 	playerData* pdata = self->data;
 	if (!pdata)return;
 	
+	if (pdata->effectSlowMoTime) {
+		turnmult *= SLOWMOFACTOR;
+	}
+
 	if (pdata->currentNormal.x == 0 && pdata->currentNormal.y == 0 && pdata->currentNormal.z == 0) return;
 	
 	float mag = gfc_vector3d_magnitude(pdata->positionVelocity);
@@ -213,11 +227,12 @@ void player_turn(Entity* self, float turnmult) {
 
 	gfc_vector3d_cross_product(&velocityDelta, pdata->positionVelocity, scaledNormal);
 	if (mag < 1) {
-		gfc_vector3d_scale(negativePVelocity, negativePVelocity, -0.033);
+		gfc_vector3d_scale(negativePVelocity, negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * 1.2);
+		//gfc_vector3d_set_magnitude(&negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * 2);
 		gfc_vector3d_scale(velocityDelta, velocityDelta, mag);
 	}
 	else{
-		gfc_vector3d_set_magnitude(&negativePVelocity, -0.015);
+		gfc_vector3d_set_magnitude(&negativePVelocity, TURNING_NEG_VELOCITY_FACTOR);
 		if (mag > 1.5) {
 			gfc_vector3d_scale(velocityDelta, velocityDelta, 1.5/mag);
 		}
@@ -448,7 +463,19 @@ void player_think(Entity* self)
 		}
 	}
 	
-	
+	if (pdata->effectEngineOff) {
+		if (key_up & inputs) {
+			inputs -= key_up;
+		}
+	}
+	if (pdata->effectReactorTime) {
+		if (pdata->currentNormal.x == 0 && pdata->currentNormal.y == 0 && pdata->currentNormal.z == 0) {
+			gfc_vector3d_sub(pdata->currentNormal, pdata->aboveFL, pdata->wheelFL);
+			gfc_vector3d_set_magnitude(&pdata->currentNormal, 1);
+
+		}
+	}
+
 	if ((key_down & inputs) && !pdata->gameState) {
 		pdata->sliding = 1;
 		pdata->friction += 0.2;
@@ -527,7 +554,7 @@ void player_think(Entity* self)
 	float downmag;
 	gfc_vector3d_sub(down, pdata->wheelFL, pdata->aboveFL);
 	gfc_vector3d_sub(forward, pdata->wheelFL, pdata->wheelRL);
-	downmag = gfc_vector3d_dot_product(forward, pdata->positionVelocity) * 0.005;
+	downmag = gfc_vector3d_dot_product(forward, pdata->positionVelocity) * 0.004;
 	//slog("downmag: %f", downmag);
 	if (downmag > 0.05) {
 		downmag = 0.05;
@@ -542,7 +569,21 @@ void player_think(Entity* self)
 				down),
 			self, 0);
 	}
-	
+	if (pdata->effectReactorTime) {
+		float reactor_force;
+		if (pdata->reactorDir > 0) {
+			reactor_force = REACTOR_DOWN_FORCE;
+		}
+		else {
+			reactor_force = REACTOR_UP_FORCE;
+		}
+		gfc_vector3d_set_magnitude(&down, reactor_force* pdata->reactorDir);
+		apply_force(
+			force3d(gfc_vector3d(0, 0, 0),
+				down),
+			self, 0);
+		slog("reactor force: %f", reactor_force * pdata->reactorDir);
+	}
 
 	pdata->surface = 0;
 	//pdata->rotationVelocity.x = 0.01;
@@ -751,7 +792,11 @@ void player_think(Entity* self)
 		pdata->sliding = 0;
 	}
 
-	
+	if (pdata->effectCruiseControl) {
+		if (gfc_vector3d_magnitude(pdata->positionVelocity) > pdata->CruiseControlSpeed) {
+			gfc_vector3d_set_magnitude(&pdata->positionVelocity, pdata->CruiseControlSpeed);
+		}
+	}
 }
 
 
@@ -760,8 +805,16 @@ void move_player(Entity* self)
 	if (!self)return;
 	if (!self->data)return;
 	playerData* pdata = self->data;
-	gfc_vector3d_add(self->position, pdata->positionVelocity, self->position);
-	gfc_vector3d_add(self->rotation, pdata->rotationVelocity, self->rotation);
+	GFC_Vector3D pvel, rvel;
+	pvel = pdata->positionVelocity;
+	rvel = pdata->rotationVelocity;
+	if (pdata->effectSlowMoTime) {
+		gfc_vector3d_scale(pvel, pvel, SLOWMOFACTOR);
+		gfc_vector3d_scale(rvel, rvel, SLOWMOFACTOR);
+	}
+	
+	gfc_vector3d_add(self->position, pvel, self->position);
+	gfc_vector3d_add(self->rotation, rvel, self->rotation);
 	
 	//self->hitbox = gfc_box(self->position.x - 2, self->position.y - 2, self->position.z - 2, 4, 4, 4);
 
@@ -904,6 +957,15 @@ void player_update(Entity* self)
 	}
 	pdata->forward = gfc_vector3d(0, 1, 0);
 	apply_matrix(playerMatrix, &pdata->forward);
+
+
+	//Update effects
+	if (pdata->effectReactorTime) {
+		pdata->effectReactorTime--;
+	}
+	if (pdata->effectSlowMoTime) {
+		pdata->effectSlowMoTime--;
+	}
 }
 
 int player_draw(Entity* self)
@@ -985,7 +1047,7 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 	pdata->mapData = mdata;
 	player->position = mdata->startBlock->position;
 	player->rotation = mdata->startBlock->rotation;
-	player->rotation = gfc_vector3d(0,0,0);
+	//player->rotation = gfc_vector3d(0,0,0);
 
 	if (playerType == playertype_player) {
 		pdata->currReplay = refresh_temp_replay(NULL);

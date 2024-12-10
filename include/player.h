@@ -14,6 +14,9 @@
 #define playertype_player 0
 #define playertype_replay 1
 #define playertype_ai 2
+
+#define SLOWMOFACTOR 0.4
+
 typedef struct
 {
 	Uint8			cameraMode;
@@ -52,6 +55,13 @@ typedef struct
 	Uint8			sliding; //There should be different turning physics if the car is in a sliding state or not
 	Uint8			surface;
 	float			camstep;
+	Uint16			effectReactorTime;
+	Sint8			reactorDir;
+	Uint8			effectCruiseControl;
+	float			CruiseControlSpeed;
+	Uint8			effectEngineOff;
+	Uint16			effectSlowMoTime;
+
 }playerData;
 
 Entity *spawn_player(mapData* mdata, Uint8 playerType);

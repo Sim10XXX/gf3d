@@ -11,7 +11,7 @@
 #include "gf3d_draw.h"
 
 #define CYCLE_MIN 1
-#define CYCLE_MAX 9
+#define CYCLE_MAX MAX_ID
 
 void editor_select_new_block(Entity* self) {
 	if (!self) return;
