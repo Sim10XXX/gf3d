@@ -99,6 +99,8 @@ int main(int argc,char *argv[])
     gf2d_actor_init(1000);
     gf3d_draw_init();//3D
     gf2d_draw_manager_init(1000);//2D
+
+    gfc_audio_init(11, 3, 1, 2, 0, 1);
     
     //game init
     srand(SDL_GetTicks());

@@ -137,7 +137,7 @@ mapData* load_map_from_cfg(const char* filename) {
 	nodeList = gfc_allocate_array(sizeof(Node), c);
 	if (!nodeList) {
 		slog("Failed to alloc nodeList during map parsing");
-		return mdata;
+		//return mdata;
 	}
 	if (c > 0) {
 		mdata->hasNodes = 1;
@@ -169,7 +169,9 @@ mapData* load_map_from_cfg(const char* filename) {
 	}
 	set_nodes(nodeList);
 
-	free(nodeList);
+	if (nodeList) {
+		free(nodeList);
+	}
 	free(SJmap);
 	Entity* stadium = entity_new();
 	stadium->model = gf3d_model_load("models/stadium.model");
@@ -235,4 +237,20 @@ int convert_current_entities_into_map(int id) {
 
 
 	return i;
+}
+
+mapData* load_empty_map(int mapID) {
+	mapData* mdata;
+	mdata = gfc_allocate_array(sizeof(mapData), 1);
+	if (!mdata) {
+		slog("Could not allocate mapData");
+		return 0;
+	}
+	mdata->mapID = mapID;
+
+	Entity* stadium = entity_new();
+	stadium->model = gf3d_model_load("models/stadium.model");
+	stadium->colliding = 1;
+
+	return mdata;
 }

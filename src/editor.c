@@ -10,8 +10,8 @@
 #include "editor.h"
 #include "gf3d_draw.h"
 
-#define CYCLE_MIN 1
-#define CYCLE_MAX MAX_ID
+//#define CYCLE_MIN 1
+//#define CYCLE_MAX MAX_ID
 
 void editor_select_new_block(Entity* self) {
 	if (!self) return;
@@ -40,11 +40,11 @@ void editor_think(Entity* self) {
 	}
 	if (cycle && !edata->nodeMode) {
 		edata->currcycle += cycle;
-		if (edata->currcycle < CYCLE_MIN) {
-			edata->currcycle = CYCLE_MAX;
+		if (edata->currcycle < edata->cycleMin) {
+			edata->currcycle = edata->cycleMax;
 		}
-		else if (edata->currcycle > CYCLE_MAX) {
-			edata->currcycle = CYCLE_MIN;
+		else if (edata->currcycle > edata->cycleMax) {
+			edata->currcycle = edata->cycleMin;
 		}
 		if (edata->selectedBlock) {
 			entity_free(edata->selectedBlock);
@@ -296,6 +296,18 @@ Entity* editor_spawn(mapData* mdata) {
 
 	edata->mdata = mdata;
 	
+	edata->cycleMin = 1;
+	SJson* sj;
+	sj = sj_load("config/block.cfg");
+	if (!sj) {
+		slog("Couldn't load block.cfg");
+	}
+	else {
+		sj = sj_object_get_value(sj, "blockdef");
+		edata->cycleMax = sj_array_get_count(sj);
+		sj_free(sj);
+	}
+
 	//slog("spawnenennd");
 	return editor;
 }

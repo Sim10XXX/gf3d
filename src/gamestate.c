@@ -26,6 +26,22 @@ void set_speed(int v) {
 	gamestate.speed = v;
 }
 
+int get_RPM() {
+	return gamestate.RPM;
+}
+
+void set_RPM(int v) {
+	gamestate.RPM = v;
+}
+
+int get_gear() {
+	return gamestate.gear;
+}
+
+void set_gear(int v) {
+	gamestate.gear = v;
+}
+
 Uint8 is_paused() {
 	return gamestate.pause;
 }

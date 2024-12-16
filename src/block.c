@@ -307,77 +307,83 @@ Entity* spawn_block(int id) {
 	//gfc_vector3d_add(p3, block->position, gfc_vector3d(-2.0, 2.0, 0.1));
 
 	//bdata->hitbox = gfc_triangle(p1,p2,p3);
+
 	block->data = bdata;
 	block->scale = gfc_vector3d(1, 1, 1);
 	block->colliding = 1;
 	block->collisionRadius = 20;
 	block->isBlock = 1;
+
+	SJson* sj, *a;
+	sj = sj_load("config/block.cfg");
+	if (!sj) {
+		slog("Couldn't load block.cfg");
+		return 0;
+	}
+	sj = sj_object_get_value(sj, "blockdef");
+	int c = sj_array_get_count(sj);
+	int i;
+	int cid;
+	GFC_String *str, *str2;
+	for (i = 0; i < c; i++) {
+		a = sj_array_get_nth(sj, i);
+		sj_object_get_value_as_int(a, "id", &cid);
+		if (cid == id) {
+			if (str = sj_object_get_gfc_string(a, "model")) {
+				block->model = gf3d_model_load(str->buffer);
+				gfc_string_free(str);
+			}
+			else if (str = sj_object_get_gfc_string(a, "obj")) {
+				if (str2 = sj_object_get_gfc_string(a, "texture")) {
+					block->model = gf3d_model_load_full(str->buffer, str2->buffer);
+					gfc_string_free(str2);
+				}
+				gfc_string_free(str);
+			}
+			break;
+		}
+	}
+	sj_free(sj);
 	switch (id) {
-	case 1:
-		block->model = gf3d_model_load("models/platform.model");
-		break;
-	case 2:
-		block->model = gf3d_model_load("models/ramp.model");
-		break;
-	case 3:
-		block->model = gf3d_model_load("models/quarterpipe.model");
-		break;
-	case 4:
-		block->model = gf3d_model_load_full("models/platform/gate.obj", "models/platform/platform.png");
-		break;
 	case CHECKPOINT_ID:
-		//block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/blue.png");
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_BLUE;
 		block->colliding = 2;
 		block->touch = checkpoint_touch;
 		break;
 	case FINISH_ID:
-		//block->model = gf3d_model_load_full("models/platform/finish.obj", "models/platform/red.png");
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_RED;
 		block->colliding = 2;
 		block->touch = finish_touch;
 		break;
 	case 7:
-		block->model = gf3d_model_load("models/grass.model");
 		block->touch = grass_touch;
 		block->update = block_reset;
 		break;
-	case 8:
-		block->model = gf3d_model_load_full("models/platform/pole.obj", "models/platform/platform.png");
-		break;
 	case 9:
-		block->model = gf3d_model_load("models/booster.model");
 		block->touch = booster_touch;
 		block->update = block_reset;
 		break;
 	case EFFECT_GATE_CRUISECONTROL_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_DARKBLUE;
 		block->colliding = 2;
 		block->touch = effect_gate_touch;
 		break;
 	case EFFECT_GATE_ENGINEOFF_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_MAGENTA;
 		block->colliding = 2;
 		block->touch = effect_gate_touch;
 		break;
 	case EFFECT_GATE_REACTOR_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_ORANGE;
 		block->colliding = 2;
 		block->touch = effect_gate_touch;
 		break;
 	case EFFECT_GATE_RESET_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_GREEN;
 		block->colliding = 2;
 		block->touch = effect_gate_touch;
 		break;
 	case EFFECT_GATE_SLOWMO_ID:
-		block->model = gf3d_model_load_full("models/platform/checkpoint.obj", "models/platform/white.png");
 		block->colormod = GFC_COLOR_GREY;
 		block->colliding = 2;
 		block->touch = effect_gate_touch;

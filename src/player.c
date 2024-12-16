@@ -9,6 +9,7 @@
 #include "replay.h"
 #include "node.h"
 #include "gamestate.h"
+#include "gf3d_draw.h"
 
 #define FRICTION 0.005
 #define wheel_radius 1
@@ -16,10 +17,11 @@
 #define REACTOR_UP_FORCE 0.03
 #define REACTOR_DOWN_FORCE 0.05
 #define TURNING_NEG_VELOCITY_FACTOR -0.013
+#define VOLUME_MULT 0.01
 
 
-#define replay_on 0
-#define ai_on 0
+#define replay_on 1
+#define ai_on 1
 
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
@@ -366,6 +368,53 @@ GFC_Vector4D multiplyQuaternions(GFC_Vector4D q1, GFC_Vector4D q2) {
 
 	return result;
 }*/
+void player_sound(Entity* self) {
+	
+	if (!self)return;
+	playerData* pdata = self->data;
+	if (!pdata)return;
+	if (is_paused() || pdata->effectEngineOff) {
+		Mix_HaltChannel(1);
+		return;
+	}
+	int enginePitch;
+	pdata->RPM;
+	float rpmlower = 1000;
+	float rpmupper = 7500;
+	if (pdata->RPM < rpmlower) {
+		enginePitch = 0;
+	}
+	else if (pdata->RPM > rpmupper) {
+		enginePitch = 10;
+	}
+	else {
+		float div = (rpmupper - rpmlower) / 9;
+		enginePitch = (pdata->RPM - rpmlower-div) / div;
+	}
+	GFC_Sound* engineSound = pdata->engineSound;
+	engineSound += enginePitch;
+	//slog("pitch: %i", enginePitch);
+	float RPM = pdata->RPM;
+	if (RPM > 9999) {
+		RPM = 9999;
+	}
+	else if (RPM < 1) {
+		RPM = 1;
+	}
+	float volumemult = RPM / 30000.0 + 0.3;
+	if (!pdata->currentlyAccelerating) {
+		volumemult *= 0.7;
+	}
+	if (pdata->soundTickRate) {
+		if (pdata->framecount % pdata->soundTickRate == 0 || pdata->currentlyAccelerating != pdata->currentlyAcceleratingLastFrame || (pdata->lastEnginePitch != enginePitch && pdata->framecount % pdata->pitchTickRate == 0)){
+			//slog("es: %i, _e10: %i", engineSound, pdata->_e10);
+			gfc_sound_play(engineSound, 0, volumemult * VOLUME_MULT, -1, -1);
+		}
+	}
+	pdata->lastEnginePitch = enginePitch;
+	
+}
+
 void player_think(Entity* self) 
 {
 	if (is_paused()) return;
@@ -508,14 +557,22 @@ void player_think(Entity* self)
 		gfc_vector3d_sub(normalRight, pdata->wheelRR, pdata->wheelRL);
 		gfc_vector3d_cross_product(&dv, pdata->currentNormal, normalRight);
 		float acc;
-		acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity)+4);
+		//acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity)+4);
+		float RPM = pdata->RPM;
+		float x = (RPM - 4000) / 2000;
+		acc = 1 / (1.5 + x*x);
+		acc = acc * (5)*0.007;
+		//acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity) + 4);
 		gfc_vector3d_set_magnitude(&dv, acc);
 
 		apply_force(
 			force3d(gfc_vector3d(0, 0, 0),
 				dv), //sin(self->rotation.x)*0.05)
 			self, 0);
-		
+		pdata->currentlyAccelerating = 1;
+	}
+	else {
+		pdata->currentlyAccelerating = 0;
 	}
 	if ((key_right & inputs) && !pdata->gameState) {
 		//pdata->rotationVelocity.z = -0.05;
@@ -904,11 +961,16 @@ void player_update(Entity* self)
 		gfc_vector3d_sub(camera, self->position, dir);
 		camera.z += 10;
 		gf3d_camera_look_at(lookTarget, &camera);
+
+		
 	}
 	else if (pdata->playerType == playertype_player && pdata->cameraMode == 7) {
 		gf3d_camera_controls_update();
 	}
-
+	
+	if (pdata->playerType == playertype_player) {
+		player_sound(self);
+	}
 	if (is_paused()) return;
 
 	
@@ -921,6 +983,8 @@ void player_update(Entity* self)
 	if (pdata->playerType == playertype_player) {
 		set_framecount(pdata->framecount);
 		set_speed(_cvt_ftoi_fast(gfc_vector3d_magnitude(pdata->positionVelocity) * 100));
+		set_gear(pdata->gear);
+		set_RPM(pdata->RPM);
 	}
 
 	
@@ -966,6 +1030,28 @@ void player_update(Entity* self)
 	if (pdata->effectSlowMoTime) {
 		pdata->effectSlowMoTime--;
 	}
+
+	pdata->currentlyAcceleratingLastFrame = pdata->currentlyAccelerating;
+	float speed = gfc_vector3d_magnitude(pdata->positionVelocity);
+	float sx = speed - pdata->gear * 0.7;
+	if (sx > 0) {
+		pdata->RPM = sx * 6000;
+	}
+	else {
+		pdata->RPM = 0;
+	}
+	
+	//slog("rpm: %i", pdata->RPM);
+	if (pdata->gear < 4) {
+		if (pdata->RPM > 6000) {
+			pdata->gear++;
+		}
+	}
+	if (pdata->gear > 0) {
+		if (pdata->RPM < 1000) {
+			pdata->gear--;
+		}
+	}
 }
 
 int player_draw(Entity* self)
@@ -984,7 +1070,7 @@ int player_draw(Entity* self)
 	gf3d_model_draw(
 		self->model,	
 		matrix,
-		GFC_COLOR_GREEN,
+		GFC_COLOR_WHITE,
 		0);
 	GFC_Vector3D* wheel;
 	int i;
@@ -996,7 +1082,7 @@ int player_draw(Entity* self)
 		else {
 			color = gfc_color8(255, 0, 0, 63);
 		}
-		gfc_matrix4_from_vectors(
+		/*gfc_matrix4_from_vectors(
 			matrix,
 			*wheel,
 			self->rotation,
@@ -1005,7 +1091,8 @@ int player_draw(Entity* self)
 			self->model,
 			matrix,
 			color,
-			0);
+			0);*/
+		gf3d_draw_sphere_solid(gfc_sphere(0,0,0,1), *wheel, gfc_vector3d(0,0,0), gfc_vector3d(1,1,1), color, GFC_COLOR_WHITE);
 	}
 	//slog("ya");
 	//slog(self->model);
@@ -1040,7 +1127,7 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 	player->update = player_update;
 	player->free = player_free;
 	player->reset = player_reset;
-	player->model = gf3d_model_load("models/primitives/sphere.obj");
+	//player->model = gf3d_model_load("models/primitives/sphere.obj");
 		//gf3d_model_load("models/dino.model");
 	player->draw = player_draw;
 
@@ -1059,13 +1146,31 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 			spawn_player(ghostMdata, playertype_replay);
 		}
 
-		mapData* aiMdata = gfc_allocate_array(sizeof(mapData), 1);
-		aiMdata->mapID = mdata->mapID;
-		aiMdata->startBlock = mdata->startBlock;
-		aiMdata->totalCheckpoints = mdata->totalCheckpoints;
-		if (ai_on) {
-			spawn_player(aiMdata, playertype_ai);
+		if (mdata->hasNodes) {
+			mapData* aiMdata = gfc_allocate_array(sizeof(mapData), 1);
+			aiMdata->mapID = mdata->mapID;
+			aiMdata->startBlock = mdata->startBlock;
+			aiMdata->totalCheckpoints = mdata->totalCheckpoints;
+			if (ai_on) {
+
+				spawn_player(aiMdata, playertype_ai);
+			}
 		}
+		
+
+		int i;
+		char buffer[30];
+		GFC_Sound** psound;
+		for (i = 0; i < 11; i++) {
+			psound = &(pdata->engineSound) + i;
+			sprintf(buffer, "sounds/engine%i.ogg", i);
+			*psound = gfc_sound_load(buffer, 0.5, 1);
+		}
+
+		pdata->soundTickRate = 30;
+		pdata->pitchTickRate = 2;
+		//pdata->silence = gfc_sound_load("sounds/silence.ogg", 0, 1);
+
 	}
 	else if (playerType == playertype_replay) {
 		pdata->currReplay = open_replay(mdata->mapID);
@@ -1080,6 +1185,6 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 		slog("somehow NULL");
 	}
 	
-
+	player->model = gf3d_model_load_full("models/car/Cars.obj", "models/car/Car Texture 1.png");
 	return player;
 }

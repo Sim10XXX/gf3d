@@ -16,6 +16,8 @@ typedef struct
 
 mapData* load_map_from_cfg(const char* filename);
 
+mapData* load_empty_map(int mapID);
+
 int convert_current_entities_into_map(int id);
 
 #endif

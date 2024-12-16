@@ -38,7 +38,7 @@ void hud_system_close()
 
 
 
-void set_elements_state(Uint8 elementmask) {
+void set_elements_state(Uint16 elementmask) {
 	int i;
 	for (i = 0; i < hud_manager.hudElementMax; i++)
 	{
@@ -71,6 +71,9 @@ void start_map(Hud_Element *self) {
 	if (!self) return;
 	if (!self->filename) return;
 	mapData* mdata = load_map_from_cfg(self->filename->buffer);
+	if (!mdata) {
+		mdata = load_empty_map(self->mapID);
+	}
 	if (!get_editormode()) {
 		spawn_player(mdata, playertype_player);
 	}
@@ -85,7 +88,7 @@ void start_map(Hud_Element *self) {
 
 void load_map_elements();
 
-void open_elements(Hud_Element *self, Uint8 mask) {
+void open_elements(Hud_Element *self, Uint16 mask) {
 	if (mask & MAP_SELECT_ELEMENT) {
 		load_map_elements();
 	}
@@ -157,8 +160,12 @@ void hud_system_init(const char* filename, int max_dynamic_elements)
 			//hud_manager.hudElementList[i].filename = gfc_string("config/map.cfg");
 			hud_manager.hudElementList[i].click = open_elements;
 		}
-		sj_object_get_uint8(a, "element_type", &hud_manager.hudElementList[i].element_type);
-		sj_object_get_uint8(a, "set_elements", &hud_manager.hudElementList[i].mask);
+		int temp;
+		sj_object_get_int(a, "element_type", &temp);
+		hud_manager.hudElementList[i].element_type = temp;
+		sj_object_get_int(a, "set_elements", &temp);
+		hud_manager.hudElementList[i].mask = temp;
+
 		slog("elementtype: %i", hud_manager.hudElementList[i].element_type);
 		hud_manager.hudElementList[i]._inuse = 1;
 
@@ -176,11 +183,18 @@ void element_draw(Hud_Element *self) {
 	if (self->text) {
 		char buffer[30];
 		if (self->element_type & GAME_ELEMENT) {
-			if (!(self->element_type ^ GAME_ELEMENT_TIME)) {
+			Uint16 etype = self->element_type - GAME_ELEMENT;
+			if (etype & GAME_ELEMENT_TIME) {
 				sprintf(buffer, "Time: %.2f", get_framecount() / 30.0);
 			}
+			else if (etype & GAME_ELEMENT_RPM) {
+				sprintf(buffer, "RPM: %i", get_RPM());
+			}
+			else if (etype & GAME_ELEMENT_GEAR) {
+				sprintf(buffer, "Gear: %i", get_gear());
+			}
 			else {
-				sprintf(buffer, "Speed: %i", get_speed());
+				sprintf(buffer, "Speed: % i", get_speed());
 			}
 		}
 		else {
@@ -233,6 +247,7 @@ void load_map_elements() {
 	int i, j, hits = 1;
 	SJson* sj;
 	char buffer[20];
+	int newid = 100;
 
 	//first clear any map elements
 	for (i = hud_manager.hudElementMax - Hud_dynamic_element_max; i < hud_manager.hudElementMax; i++)
@@ -275,9 +290,36 @@ void load_map_elements() {
 		}
 		else
 		{
+			if (i < newid) {
+				newid = i;
+			}
 			//File not found, no memory leak since 'file' == NULL
 			//fclose(file) would cause an error
 		}
+	}
+	for (j = hud_manager.hudElementMax - Hud_dynamic_element_max; j < hud_manager.hudElementMax; j++)
+	{
+		if (hud_manager.hudElementList[j]._inuse) continue;
+		//slog("j: %i",j);
+		hud_manager.hudElementList[j]._inuse = 1;
+		hud_manager.hudElementList[j].text = gfc_string("+ make a new map +");
+		sprintf(buffer, "maps/map%i.tmap", newid);
+		hud_manager.hudElementList[j].filename = gfc_string(buffer);
+		hits++;
+		hud_manager.hudElementList[j].position = gfc_vector2d(50, 50 + hits * 55);
+		GFC_Shape* s = malloc(sizeof(GFC_Shape));
+		if (s) {
+			*s = gfc_shape_rect(-10, -10, 500, 50);
+			hud_manager.hudElementList[j].shape = s;
+		}
+		hud_manager.hudElementList[j].textcolor = gfc_color8(255, 255, 255, 255);
+		hud_manager.hudElementList[j].shapecolor = gfc_color8(100, 205, 205, 255);
+		hud_manager.hudElementList[j].element_type = MAP_SELECT_ELEMENT;
+		hud_manager.hudElementList[j].click = start_map;
+		hud_manager.hudElementList[j].mapID = newid;
+		break;
+
+
 	}
 }
 

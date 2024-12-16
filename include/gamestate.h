@@ -7,6 +7,8 @@ typedef struct {
 	Uint8 pause;
 	int framecount;
 	int speed;
+	int RPM;
+	int gear;
 	Uint8 editormode;
 } Gamestate;
 
@@ -21,6 +23,16 @@ void set_framecount(int v);
 int get_speed();
 
 void set_speed(int v);
+
+int get_RPM();
+
+void set_RPM(int v);
+
+int get_gear();
+
+void set_gear(int v);
+
+
 
 Uint8 is_paused();
 

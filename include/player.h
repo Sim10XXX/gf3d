@@ -2,6 +2,7 @@
 #define __PLAYER_H__
 
 #include "simple_logger.h"
+#include "gfc_audio.h"
 #include "entity.h"
 #include "map.h"
 
@@ -61,6 +62,29 @@ typedef struct
 	float			CruiseControlSpeed;
 	Uint8			effectEngineOff;
 	Uint16			effectSlowMoTime;
+	
+	Uint16			RPM;
+	Uint8			gear;
+
+	GFC_Sound		*silence;
+	GFC_Sound		*engineSound;
+	GFC_Sound		*_e1;
+	GFC_Sound		*_e2;
+	GFC_Sound		*_e3;
+	GFC_Sound		*_e4;
+	GFC_Sound		*_e5;
+	GFC_Sound		*_e6;
+	GFC_Sound		*_e7;
+	GFC_Sound		*_e8;
+	GFC_Sound		*_e9;
+	GFC_Sound		*_e10;
+
+	Uint8			soundTickRate;
+	Uint8			pitchTickRate;
+	Uint8			currentlyAccelerating;
+	Uint8			currentlyAcceleratingLastFrame;
+	Uint8			lastEnginePitch;
+
 
 }playerData;
 

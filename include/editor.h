@@ -18,6 +18,8 @@ typedef struct
 	mapData			*mdata;
 	Uint8			nodeMode;
 	Node			*selectedNode;
+	Uint16			cycleMin;
+	Uint16			cycleMax;
 
 }editorData;
 
