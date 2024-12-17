@@ -32,6 +32,8 @@
 #include "hud_element.h"
 #include "gamestate.h"
 
+#include "particle.h"
+
 extern int __DEBUG;
 
 static int _done = 0;
@@ -121,6 +123,8 @@ int main(int argc,char *argv[])
     
     gf3d_camera_enable_free_look(1);
     //windows
+    //particle_system_init(1);
+
     entity_system_init(1000);
     //mapData* mdata = load_map_from_cfg("config/map.cfg");
     //player = spawn_player(mdata, playertype_player);

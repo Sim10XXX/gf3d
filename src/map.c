@@ -76,7 +76,6 @@ mapData* load_map_from_cfg(const char* filename) {
 		else if (!sj_object_get_vector3d(a, "position", &block->position)) {
 			block->position = gfc_vector3d(0, 0, 10);
 		}
-
 		if (!sj_object_get_vector3d(a, "rotation", &block->rotation)) {
 			if (!sj_object_get_vector3d(a, "rotationradians", &block->rotation)) {
 				block->rotation = gfc_vector3d(0, 0, 0);
@@ -95,6 +94,9 @@ mapData* load_map_from_cfg(const char* filename) {
 		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(block->position));
 		//GFC_HALF_PI;
 		//slog("id: %i, number: %i", id, i);
+		if (id == 1) {
+			make_moving_block(block, gfc_vector3d(0, 0, 0));
+		}
 		if (id == 5) {
 			mdata->totalCheckpoints++;
 		}

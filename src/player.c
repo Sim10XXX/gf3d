@@ -20,8 +20,8 @@
 #define VOLUME_MULT 0.01
 
 
-#define replay_on 1
-#define ai_on 1
+#define replay_on 0
+#define ai_on 0
 
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
@@ -186,6 +186,7 @@ void player_reset(Entity* self) {
 
 	pdata->sliding = 0; 
 	pdata->surface = 0;
+	pdata->currentSurface = 0;
 
 	pdata->effectCruiseControl = 0;
 	pdata->effectEngineOff = 0;
@@ -227,14 +228,22 @@ void player_turn(Entity* self, float turnmult) {
 	//goto test;
 	negativePVelocity = pdata->positionVelocity;
 
+	float negativeVelSurfaceMult = 1;
+	if ((pdata->currentSurface & SURFACE_WOOD) || (pdata->currentSurface & SURFACE_ICE)) {
+		negativeVelSurfaceMult = 0;
+	}
+	if (pdata->currentSurface & SURFACE_P_GRASS) {
+		negativeVelSurfaceMult = 1.3;
+	}
+
 	gfc_vector3d_cross_product(&velocityDelta, pdata->positionVelocity, scaledNormal);
 	if (mag < 1) {
-		gfc_vector3d_scale(negativePVelocity, negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * 1.2);
+		gfc_vector3d_scale(negativePVelocity, negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * 1.2* negativeVelSurfaceMult);
 		//gfc_vector3d_set_magnitude(&negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * 2);
 		gfc_vector3d_scale(velocityDelta, velocityDelta, mag);
 	}
 	else{
-		gfc_vector3d_set_magnitude(&negativePVelocity, TURNING_NEG_VELOCITY_FACTOR);
+		gfc_vector3d_set_magnitude(&negativePVelocity, TURNING_NEG_VELOCITY_FACTOR * negativeVelSurfaceMult);
 		if (mag > 1.5) {
 			gfc_vector3d_scale(velocityDelta, velocityDelta, 1.5/mag);
 		}
@@ -242,12 +251,33 @@ void player_turn(Entity* self, float turnmult) {
 
 	gfc_vector3d_add(velocityDelta, velocityDelta, negativePVelocity);
 
+	float surfaceTurningMult = 1;
+
+	if (pdata->currentSurface & SURFACE_ICE) {
+		surfaceTurningMult = 0;
+	}
+	if (pdata->currentSurface & SURFACE_WOOD) {
+		surfaceTurningMult *= 1.5;
+	}
+	if (pdata->currentSurface & SURFACE_DIRT) {
+		surfaceTurningMult *= 0.7;
+	}
+	if (pdata->currentSurface & SURFACE_P_GRASS) {
+		surfaceTurningMult *= 0.7;
+	}
+	GFC_Vector3D projectedVel;
+	gfc_vector3d_add(projectedVel, pdata->positionVelocity, velocityDelta);
+
+	gfc_vector3d_scale(velocityDelta, velocityDelta, surfaceTurningMult);
 	gfc_vector3d_add(pdata->positionVelocity, pdata->positionVelocity, velocityDelta);
 
 	//gfc_angle
 	float theta;
-	theta = acos(gfc_vector3d_dot_product(pdata->positionVelocity, previouspVelocity) / 
-		(gfc_vector3d_magnitude(pdata->positionVelocity) * gfc_vector3d_magnitude(previouspVelocity)));
+	if ((gfc_vector3d_magnitude(projectedVel) * gfc_vector3d_magnitude(previouspVelocity)) == 0) {
+		slog("div by zero");
+	}
+	theta = acos(gfc_vector3d_dot_product(projectedVel, previouspVelocity) /
+		(gfc_vector3d_magnitude(projectedVel) * gfc_vector3d_magnitude(previouspVelocity)));
 	 //!pdata->sliding
 	if (isnan(theta)) {
 		//slog("oop");
@@ -531,10 +561,18 @@ void player_think(Entity* self)
 		pdata->friction += 0.2;
 		//slog("yep");
 	}
-	if (pdata->surface) {
+	if ((pdata->currentSurface & SURFACE_DIRT) || (pdata->currentSurface & SURFACE_P_GRASS)) {
 		pdata->sliding = 1;
 		//slog("grass");
 	}
+	if (pdata->currentSurface & SURFACE_ICE) {
+		pdata->sliding = 1;
+		pdata->friction -= FRICTION;
+	}
+	else if (pdata->currentSurface & SURFACE_WOOD) {
+		pdata->sliding = 0;
+	}
+
 	if ((key_respawn & inputs) && !pdata->gameState) { //could remove the checks for gamestate
 		Entity* checkpointBlock = mdata->lastCheckpoint;
 		player_reset(self);
@@ -557,12 +595,22 @@ void player_think(Entity* self)
 		GFC_Vector3D normalRight;
 		gfc_vector3d_sub(normalRight, pdata->wheelRR, pdata->wheelRL);
 		gfc_vector3d_cross_product(&dv, pdata->currentNormal, normalRight);
+		float surfaceMult = 1;
+		if (pdata->currentSurface & SURFACE_P_GRASS) {
+			surfaceMult *= 0.6;
+		}
+		if (pdata->currentSurface & SURFACE_ICE) {
+			surfaceMult *= 0.4;
+		}
+		if (pdata->currentSurface & SURFACE_WOOD) {
+			surfaceMult *= 1.3;
+		}
 		float acc;
 		//acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity)+4);
 		float RPM = pdata->RPM;
 		float x = (RPM - 4000) / 2000;
 		acc = 1 / (1.5 + x*x);
-		acc = acc * (5)*0.007;
+		acc = acc * (5)*0.007 * surfaceMult;
 		//acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity) + 4);
 		gfc_vector3d_set_magnitude(&dv, acc);
 
@@ -664,7 +712,8 @@ void player_think(Entity* self)
 		slog("reactor force: %f", reactor_force * pdata->reactorDir);
 	}
 
-	pdata->surface = 0;
+	//pdata->surface = 0;
+	pdata->currentSurface = 0;
 	//pdata->rotationVelocity.x = 0.01;
 	GFC_Vector3D* wheel;
 	int i, j, k, l;
@@ -761,7 +810,9 @@ void player_think(Entity* self)
 
 			//Since the force from vlist is supposed to be the direction of the normal force,
 			//We need to calculate the magnitude by using the player's current velocity
-
+			if (gfc_vector3d_magnitude(gfc_vector4dxyz(vlistlist[i][j])) == 0) {
+				slog("div by zero");
+			}
 			float mag = gfc_vector3d_dot_product(finalv[i], vlistlist[i][j]) / gfc_vector3d_magnitude(gfc_vector4dxyz(vlistlist[i][j]));
 			mag *= -normal_force_mult;
 			//mag = normal_force_mult;
@@ -861,7 +912,17 @@ void player_think(Entity* self)
 	apply_matrix(pmatrix, &facingDir);
 
 	gfc_vector3d_cross_product(&gripForce, pdata->currentNormal, facingDir);
-	float gripforcemag = gfc_vector3d_dot_product(gripForce, pdata->positionVelocity) * -0.1;
+	float surfaceGripMult = 1;
+	if (pdata->currentSurface & SURFACE_WOOD) {
+		surfaceGripMult *= 2;
+	}
+	if (pdata->currentSurface & SURFACE_ICE) {
+		surfaceGripMult *= 0;
+	}
+	if ((pdata->currentSurface & SURFACE_DIRT) || (pdata->currentSurface & SURFACE_P_GRASS)) {
+		surfaceGripMult *= 0.5;
+	}
+	float gripforcemag = gfc_vector3d_dot_product(gripForce, pdata->positionVelocity) * -0.1 * surfaceGripMult;
 	gfc_vector3d_set_magnitude(&gripForce, gripforcemag);
 	apply_force(
 		force3d(gfc_vector3d(0, 0, 0),//pdata->relativePos[0],
@@ -1074,6 +1135,7 @@ void player_update(Entity* self)
 			pdata->gear--;
 		}
 	}
+	
 }
 
 int player_draw(Entity* self)

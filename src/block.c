@@ -14,6 +14,7 @@
 #include "gfc_matrix.h"
 
 //#include "gamestate.h"
+#define FRAMEMAX 128
 
 typedef struct
 {
@@ -24,9 +25,35 @@ typedef struct
 	Uint8 start;
 	Uint8 nodeid;
 	Uint8 surfaceType;
+	Uint8 isMoving;
+	GFC_Vector3D pos1;
+	GFC_Vector3D pos2;
+	int movingdir;
+	GFC_Vector3D velocity;
+	int currentFrame;
+	int frameMax;
 }blockData;
 
-void block_reset(Entity* self) {
+
+
+void block_think(Entity* self) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+	if (!bdata->isMoving) return;
+
+	GFC_Vector3D s;
+	if (bdata->movingdir == 1 && bdata->currentFrame == bdata->frameMax) {
+		bdata->movingdir = -1;
+	}
+	else if (bdata->movingdir == -1 && bdata->currentFrame == 0) {
+		bdata->movingdir = 1;
+	}
+	
+	
+}
+
+void block_touch_reset(Entity* self) {
 	if (!self) {
 		slog("invalid self");
 		return;
@@ -40,6 +67,36 @@ void block_reset(Entity* self) {
 	bdata->AItouched = 0;
 	bdata->replaytouched = 0;
 }
+
+void block_update(Entity* self) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+	if (!bdata->isMoving) return;
+	//slog("vx: %f, vy: %f, vz: %f", gfc_vector3d_to_slog(bdata->velocity));
+	if (bdata->movingdir == 1) {
+		gfc_vector3d_sub(self->position, self->position, bdata->velocity);
+	}
+	else if (bdata->movingdir == -1) {
+		gfc_vector3d_add(self->position, self->position, bdata->velocity);
+	}
+	bdata->currentFrame += bdata->movingdir;
+	//slog("movement update");
+
+	block_touch_reset(self);
+}
+
+void moving_block_reset(Entity* self) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+	if (!bdata->isMoving) return;
+
+	bdata->currentFrame = 0;
+	self->position = bdata->pos1;
+	bdata->movingdir = 1;
+}
+
 
 void checkpoint_touch(Entity* self, Entity* player) {
 	if (!self) {
@@ -171,7 +228,8 @@ void surface_touch(Entity* self, Entity* player) {
 	}
 	pdata->surface = 1;
 	//slog("grasstouch");
-	pdata->friction += 0.6;
+	//pdata->friction += 0.6;
+	pdata->currentSurface |= bdata->surfaceType;
 }
 
 void booster_touch(Entity* self, Entity* player) {
@@ -284,6 +342,62 @@ void block_free(Entity* self) {
 	free(self->data);
 }
 
+int block_draw(Entity* self) {
+	GFC_Matrix4 matrix;
+	if (!self) return 0;
+	blockData* bdata = self->data;
+	if (!bdata) return 0;
+	GFC_Color color = self->colormod;
+
+	if (gfc_color_cmp(color, GFC_COLOR_WHITE)) {
+		if (bdata->surfaceType & SURFACE_ICE) {
+			color = GFC_COLOR_LIGHTBLUE;
+		}
+		else if (bdata->surfaceType & SURFACE_WOOD) {
+			color = GFC_COLOR_BROWN;
+		}
+		else if (bdata->surfaceType & SURFACE_DIRT) {
+			color = GFC_COLOR_LIGHTORANGE;
+		}
+		else if (bdata->surfaceType & SURFACE_P_GRASS) {
+			color = GFC_COLOR_GREEN;
+		}
+	}
+
+	
+	gfc_matrix4_from_vectors(
+		matrix,
+		self->position,
+		self->rotation,
+		self->scale);
+	gf3d_model_draw(
+		self->model,
+		matrix,
+		color,
+		0);
+}
+void revert_block_color(Entity* self) {
+	if (!self) return 0;
+	blockData* bdata = self->data;
+	if (!bdata) return 0;
+	switch (bdata->id) {
+	case EFFECT_GATE_CRUISECONTROL_ID:
+		self->colormod = GFC_COLOR_DARKBLUE;
+		break;
+	case EFFECT_GATE_ENGINEOFF_ID:
+		self->colormod = GFC_COLOR_MAGENTA;
+		break;
+	case EFFECT_GATE_REACTOR_ID:
+		self->colormod = GFC_COLOR_ORANGE;
+		break;
+	case EFFECT_GATE_RESET_ID:
+		self->colormod = GFC_COLOR_GREEN;
+		break;
+	case EFFECT_GATE_SLOWMO_ID:
+		self->colormod = GFC_COLOR_GREY;
+	}
+
+}
 
 Entity* spawn_block(int id) {
 	Entity* block = entity_new();
@@ -358,11 +472,11 @@ Entity* spawn_block(int id) {
 		break;
 	case 7:
 		block->touch = surface_touch;
-		block->update = block_reset;
+		block->update = block_touch_reset;
 		break;
 	case 9:
 		block->touch = booster_touch;
-		block->update = block_reset;
+		block->update = block_touch_reset;
 		break;
 	case EFFECT_GATE_CRUISECONTROL_ID:
 		block->colormod = GFC_COLOR_DARKBLUE;
@@ -392,13 +506,23 @@ Entity* spawn_block(int id) {
 
 
 	}
-	
+	bdata->surfaceType = SURFACE_WOOD;
+
+	if (!block->touch) {
+		block->touch = surface_touch;
+	}
+	if (!block->update) {
+		block->update = block_touch_reset;
+	}
+
 	bdata->id = id;
 		//gf3d_model_load("models/primitives/cube.obj");
 	block->free = block_free;
-	block->reset = block_reset;
+	//block->reset = block_reset;
+	block->draw = block_draw;
 
 	
+	return block;
 }
 
 /*void set_node_id(Entity* self, Uint16 nodeId) {
@@ -496,4 +620,29 @@ Uint8 bdata_get_node_id(Entity* self) {
 	blockData* bdata = self->data;
 	if (!bdata) return 0;
 	return bdata->nodeid;
+}
+
+void make_moving_block(Entity* self, GFC_Vector3D pos2) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+
+	bdata->isMoving = 1;
+	self->reset = moving_block_reset;
+	self->update = block_update;
+	self->think = block_think;
+	gfc_vector3d_copy(bdata->pos1, self->position);
+	//slog("p1x: %f, p1y: %f, p1z: %f", gfc_vector3d_to_slog(bdata->pos1));
+	//bdata->pos1 = self->position;
+	gfc_vector3d_copy(bdata->pos2, pos2);
+	//slog("p2x: %f, p2y: %f, p2z: %f", gfc_vector3d_to_slog(bdata->pos2));
+	//bdata->pos2 = pos2;
+	bdata->frameMax = FRAMEMAX;
+
+	GFC_Vector3D s;
+	gfc_vector3d_sub(s, bdata->pos1, bdata->pos2);
+	gfc_vector3d_scale(bdata->velocity, s, 1.0 / FRAMEMAX);
+	//slog("vx: %f, vy: %f, vz: %f", gfc_vector3d_to_slog(bdata->velocity));
+	bdata->movingdir = 1;
+
 }

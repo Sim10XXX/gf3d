@@ -8,6 +8,12 @@
 
 #define collisions_max 8
 
+#define SURFACE_ROAD 0
+#define SURFACE_P_GRASS 1
+#define SURFACE_DIRT 2
+#define SURFACE_ICE 4
+#define SURFACE_WOOD 8
+
 typedef struct Entity_S
 {
 	Uint8			_inuse;		//flag for memory management

@@ -90,6 +90,8 @@ typedef struct
 	GFC_List		*animationList;
 	int				animationFrame;
 
+	Uint8			currentSurface;
+
 }playerData;
 
 Entity *spawn_player(mapData* mdata, Uint8 playerType);

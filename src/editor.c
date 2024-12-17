@@ -18,6 +18,10 @@ void editor_select_new_block(Entity* self) {
 	editorData* edata = self->data;
 	if (!edata) return;
 
+	if (!gfc_color_cmp(edata->selectedBlock->colormod, GFC_COLOR_LIGHTRED)) {
+		revert_block_color(edata->selectedBlock);
+	}
+	
 	edata->selectedBlock = spawn_block(edata->currcycle);
 	edata->selectedBlock->colormod = GFC_COLOR_LIGHTGREEN;
 }

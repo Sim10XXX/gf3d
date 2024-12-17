@@ -12,11 +12,7 @@
 #define EFFECT_GATE_ENGINEOFF_ID 13
 #define EFFECT_GATE_RESET_ID 14
 
-#define SURFACE_ROAD 0
-#define SURFACE_P_GRASS 1
-#define SURFACE_DIRT 2
-#define SURFACE_ICE 4
-#define SURFACE_WOOD 8
+
 
 //#define MAX_ID 14
 
@@ -43,5 +39,9 @@ void bdata_set_node_id(Entity* self, Uint8 v);
 Uint8 bdata_get_node_id(Entity* self);
 
 Uint8 compare_blocks(Entity* a, Entity* b);
+
+void revert_block_color(Entity* self);
+
+void make_moving_block(Entity* self, GFC_Vector3D pos2);
 
 #endif
