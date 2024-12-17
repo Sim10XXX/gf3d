@@ -508,6 +508,7 @@ void player_think(Entity* self)
 			pdata->camstep = 0.2;
 		}
 		if (pdata->cameraMode) {
+			//slog("camstep: %f", pdata->camstep);
 			gf3d_camera_set_move_step(pdata->camstep);
 		}
 	}
@@ -594,6 +595,27 @@ void player_think(Entity* self)
 	if (!(key_left & inputs) && !(key_right & inputs)) {
 		pdata->rotationVelocity.z = 0;
 	}
+
+
+	if (key_left & inputs) {
+		if (pdata->animationFrame > 1) {
+			pdata->animationFrame-=2;
+		}
+	}
+	if (key_right & inputs) {
+		if (pdata->animationFrame < 39) {
+			pdata->animationFrame+=2;
+		}
+	}
+	if (!((key_left & inputs) ^ (key_right & inputs))) {
+		if (pdata->animationFrame < 20) {
+			pdata->animationFrame++;
+		}
+		else if (pdata->animationFrame > 20) {
+			pdata->animationFrame--;
+		}
+	}
+
 	//entity_check_collision(self);
 
 	//Add gravity force
@@ -1062,13 +1084,18 @@ int player_draw(Entity* self)
 	if (!self->data)return;
 	pdata = self->data;
 
+	GFC_Vector3D modelPos;
+	gfc_vector3d_add(modelPos, self->position, pdata->modelOffset);
 	gfc_matrix4_from_vectors(
 		matrix,
-		self->position,
+		modelPos,
 		self->rotation,
 		self->scale);
+
+	Model* model = gfc_list_get_nth(pdata->animationList, pdata->animationFrame);
+
 	gf3d_model_draw(
-		self->model,	
+		model,	
 		matrix,
 		GFC_COLOR_WHITE,
 		0);
@@ -1102,6 +1129,8 @@ int player_draw(Entity* self)
 
 Entity* spawn_player(mapData* mdata, Uint8 playerType)
 {
+	int i;
+	char buffer[30];
 	Entity* player = entity_new();
 	playerData* pdata;
 	if (!player) {
@@ -1158,8 +1187,8 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 		}
 		
 
-		int i;
-		char buffer[30];
+		
+		
 		GFC_Sound** psound;
 		for (i = 0; i < 11; i++) {
 			psound = &(pdata->engineSound) + i;
@@ -1186,5 +1215,18 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 	}
 	
 	player->model = gf3d_model_load_full("models/car/Cars.obj", "models/car/Car Texture 1.png");
+	pdata->modelOffset = gfc_vector3d(0, 0, 0);
+
+	pdata->animationList = gfc_list_new();
+	for (i = 0; i < 41; i++) {
+		if (i < 10) {
+			sprintf(buffer, "models/car/Cars000%i.obj", i);
+		}
+		else {
+			sprintf(buffer, "models/car/Cars00%i.obj", i);
+		}
+		gfc_list_append(pdata->animationList, gf3d_model_load_full(buffer, "models/car/Car Texture 1.png"));
+	}
+	pdata->animationFrame = 20;
 	return player;
 }

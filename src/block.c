@@ -23,6 +23,7 @@ typedef struct
 	Uint8 id;
 	Uint8 start;
 	Uint8 nodeid;
+	Uint8 surfaceType;
 }blockData;
 
 void block_reset(Entity* self) {
@@ -131,7 +132,7 @@ void finish_touch(Entity* self, Entity* player) {
 	}
 }
 
-void grass_touch(Entity* self, Entity* player) {
+void surface_touch(Entity* self, Entity* player) {
 	if (!self) {
 		slog("invalid self");
 		return;
@@ -356,7 +357,7 @@ Entity* spawn_block(int id) {
 		block->touch = finish_touch;
 		break;
 	case 7:
-		block->touch = grass_touch;
+		block->touch = surface_touch;
 		block->update = block_reset;
 		break;
 	case 9:

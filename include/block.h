@@ -11,6 +11,13 @@
 #define EFFECT_GATE_CRUISECONTROL_ID 12
 #define EFFECT_GATE_ENGINEOFF_ID 13
 #define EFFECT_GATE_RESET_ID 14
+
+#define SURFACE_ROAD 0
+#define SURFACE_P_GRASS 1
+#define SURFACE_DIRT 2
+#define SURFACE_ICE 4
+#define SURFACE_WOOD 8
+
 //#define MAX_ID 14
 
 Entity* spawn_block(int id);

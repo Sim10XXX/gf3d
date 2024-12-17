@@ -85,6 +85,10 @@ typedef struct
 	Uint8			currentlyAcceleratingLastFrame;
 	Uint8			lastEnginePitch;
 
+	GFC_Vector3D	modelOffset;
+
+	GFC_List		*animationList;
+	int				animationFrame;
 
 }playerData;
 
