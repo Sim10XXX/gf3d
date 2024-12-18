@@ -42,6 +42,22 @@ void editor_think(Entity* self) {
 	if (gfc_input_command_pressed("cycleleft")) {
 		cycle = -1;
 	}
+	if (gfc_input_command_pressed("editorsurface1")) {
+		edata->currentSurface = SURFACE_ROAD;
+	}
+	if (gfc_input_command_pressed("editorsurface2")) {
+		edata->currentSurface = SURFACE_P_GRASS;
+	}
+	if (gfc_input_command_pressed("editorsurface3")) {
+		edata->currentSurface = SURFACE_DIRT;
+	}
+	if (gfc_input_command_pressed("editorsurface4")) {
+		edata->currentSurface = SURFACE_ICE;
+	}
+	if (gfc_input_command_pressed("editorsurface5")) {
+		edata->currentSurface = SURFACE_WOOD;
+	}
+
 	if (cycle && !edata->nodeMode) {
 		edata->currcycle += cycle;
 		if (edata->currcycle < edata->cycleMin) {
@@ -138,9 +154,22 @@ void editor_think(Entity* self) {
 	if (gfc_input_command_pressed("editordown")) {
 		self->position.z -= 20 * deltamult;
 	}
-	if (gfc_input_command_pressed("editorplace")) {
-		if (!edata->nodeMode) {
+	if (gfc_input_command_pressed("editorplace") && edata->selectedBlock) {
+		if (edata->movingBlockMode) {
+			if (edata->placementStep == 1) {
+				edata->placementStep = 2;
+				edata->selectedBlock->colormod = GFC_COLOR_WHITE;
+				bdata_set_surface(edata->selectedBlock, edata->currentSurface);
+				editor_select_new_block(self);
+			}
+			else if (edata->placementStep == 2) {
+				edata->placementStep = 1;
+				edata->movingBlockPos = make_moving_block(edata->selectedBlock, edata->selectedBlock->position);
+			}
+		}
+		else if (!edata->nodeMode) {
 			edata->selectedBlock->colormod = GFC_COLOR_WHITE;
+			bdata_set_surface(edata->selectedBlock, edata->currentSurface);
 			if (bdata_get_start(edata->selectedBlock)) edata->selectedBlock->colormod = GFC_COLOR_RED;
 			editor_select_new_block(self);
 		}
@@ -192,10 +221,10 @@ void editor_think(Entity* self) {
 
 	if (gfc_input_command_pressed("editorsave")) {
 		entity_free(edata->selectedBlock);
-		mdata->mapID = convert_current_entities_into_map(mdata->mapID);
+		mdata->mapID = convert_current_entities_into_map(mdata->mapID, mdata->title);
 		editor_select_new_block(self);
 	}
-	if (gfc_input_command_pressed("editortogglestart")) {
+	if (gfc_input_command_pressed("editortogglestart") && edata->selectedBlock) {
 		Uint8 t = bdata_get_start(edata->selectedBlock);
 		bdata_set_start(edata->selectedBlock, !t);
 		if (bdata_get_start(edata->selectedBlock)) {
@@ -204,6 +233,22 @@ void editor_think(Entity* self) {
 		else {
 			edata->selectedBlock->colormod = GFC_COLOR_LIGHTGREEN;
 		}
+	}
+	if (gfc_input_command_pressed("editormovingblockmode") && edata->selectedBlock) {
+		if (edata->movingBlockMode) {
+			edata->movingBlockMode = 0;
+			if (edata->placementStep == 2) {
+				//
+			}
+			edata->placementStep = 0;
+			edata->movingBlockPos = NULL;
+		}
+		else {
+			edata->movingBlockMode = 1;
+			edata->placementStep = 1;
+			edata->movingBlockPos = make_moving_block(edata->selectedBlock, edata->selectedBlock->position);
+		}
+		
 	}
 }
 
@@ -227,8 +272,13 @@ void editor_update(Entity* self){
 	gfc_vector3d_set_magnitude(&cpos, edata->cameraDistance);
 	//gfc_vector2d_add(cpos, gfc_vector2d_from_angle(edata->cameraYaw), self->position);
 	if (edata->selectedBlock) {
+		//if (edata->placementStep != 2) {
 		gfc_vector3d_copy(edata->selectedBlock->position, self->position);
 		gfc_vector3d_copy(edata->selectedBlock->rotation, self->rotation);
+		//}
+	}
+	if (edata->movingBlockMode) {
+		gfc_vector3d_copy((*edata->movingBlockPos), self->position);
 	}
 	gfc_vector3d_add(cpos, cpos, self->position);
 	gf3d_camera_look_at(self->position, &cpos);

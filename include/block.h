@@ -38,10 +38,14 @@ void bdata_set_node_id(Entity* self, Uint8 v);
 
 Uint8 bdata_get_node_id(Entity* self);
 
+void bdata_set_surface(Entity* self, Uint8 surfaceType);
+
 Uint8 compare_blocks(Entity* a, Entity* b);
 
 void revert_block_color(Entity* self);
 
-void make_moving_block(Entity* self, GFC_Vector3D pos2);
+GFC_Vector3D* make_moving_block(Entity* self, GFC_Vector3D pos2);
+
+GFC_Vector3D get_block_velocity(Entity* self);
 
 #endif

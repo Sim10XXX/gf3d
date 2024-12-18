@@ -56,7 +56,7 @@ void entity_reset(); //reset things like checkpoints when restarting a map
 * Check what faces a sphere (wheel) is colliding with, and populate the list with relevant vector perpendicular to that face,
 * where the magnitude happens to be equal to the sphere's radius
 */
-void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D* vlist);
+void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector3D* vlist, GFC_Vector3D *mlist);
 
 /**
  * @brief allocates a blank entity for use

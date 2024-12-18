@@ -86,12 +86,40 @@ void entity_draw(Entity *self)
 void entity_draw_all()
 {
 	int i;
+	int id;
+	//non-transparent pass
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse) continue; //
+		/*if (entity_manager.entityList[i].isBlock) {
+			id = bdata_get_id(&entity_manager.entityList[i]);
+			if (id == EFFECT_GATE_CRUISECONTROL_ID ||
+				id == EFFECT_GATE_ENGINEOFF_ID ||
+				id == EFFECT_GATE_REACTOR_ID ||
+				id == EFFECT_GATE_RESET_ID ||
+				id == EFFECT_GATE_SLOWMO_ID) {
+				continue;
+			}
+		}*/
 		entity_draw(&entity_manager.entityList[i]);
 	}
 	draw_all_nodes();
+
+	//transparent pass
+	/*for (i = 0; i < entity_manager.entityMax; i++)
+	{
+		if (!entity_manager.entityList[i]._inuse) continue; //
+		if (entity_manager.entityList[i].isBlock) {
+			id = bdata_get_id(&entity_manager.entityList[i]);
+			if (id == EFFECT_GATE_CRUISECONTROL_ID ||
+				id == EFFECT_GATE_ENGINEOFF_ID ||
+				id == EFFECT_GATE_REACTOR_ID ||
+				id == EFFECT_GATE_RESET_ID ||
+				id == EFFECT_GATE_SLOWMO_ID) {
+				entity_draw(&entity_manager.entityList[i]);
+			}
+		}
+	}*/
 }
 
 void entity_think(Entity *self)
@@ -154,7 +182,7 @@ void entity_check_collision(Entity* self)
 	}
 }*/
 
-void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, GFC_Vector3D* olist*/) {
+void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector3D* vlist, GFC_Vector3D* mlist) {
 	if (!vlist)return;
 	GFC_Matrix4 matrix;
 	GFC_Matrix4* pmatrix;
@@ -164,9 +192,11 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 	MeshPrimitive* meshPrimitive;
 	int i;
 	int vlistc = 0;
+	int mlistc = 0;
 	float d;
 	Uint8 collisionType;
 	GFC_Vector3D translation = {0};
+	GFC_Vector3D tempvec;
 	for (i = 0; i < entity_manager.entityMax; i++)
 	{
 		if (!entity_manager.entityList[i]._inuse)continue;
@@ -210,6 +240,16 @@ void check_player_collision(Entity* self, GFC_Sphere s, GFC_Vector4D *vlist /*, 
 		if (collisionType == 1) {
 			if (gf3d_obj_sphere_test(obj, pmatrix, s, vlist, &vlistc, translation)) {
 				if (!entity_manager.entityList[i].touch) continue;
+				if (entity_manager.entityList[i].isBlock) {
+					tempvec = get_block_velocity(&entity_manager.entityList[i]);
+					if (vlistc - 1 < 0) {
+						mlistc = collisions_max-1;
+					}
+					else {
+						mlistc = vlistc - 1;
+					}
+					gfc_vector3d_copy(mlist[mlistc], tempvec);
+				}
 				entity_manager.entityList[i].touch(&entity_manager.entityList[i], self);
 			}
 		}

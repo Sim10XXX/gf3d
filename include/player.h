@@ -12,11 +12,13 @@
 #define key_down 4
 #define key_left 8
 #define key_respawn 16
+#define key_cycle_up 32
+#define key_cycle_down 64
 #define playertype_player 0
 #define playertype_replay 1
 #define playertype_ai 2
 
-#define SLOWMOFACTOR 0.4
+#define SLOWMOFACTOR 0.6
 
 typedef struct
 {
@@ -91,6 +93,14 @@ typedef struct
 	int				animationFrame;
 
 	Uint8			currentSurface;
+
+	//car stats and stuff
+	Uint8			currentCar;
+
+	float			accelMult;
+	float			handlingMult;
+	float			maxGears;
+	float			tractionMult;
 
 }playerData;
 

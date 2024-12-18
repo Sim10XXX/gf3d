@@ -12,6 +12,8 @@
 
 #include "node.h"
 #include "gfc_matrix.h"
+#include "gamestate.h"
+#include "gf3d_draw.h"
 
 //#include "gamestate.h"
 #define FRAMEMAX 128
@@ -41,6 +43,7 @@ void block_think(Entity* self) {
 	blockData* bdata = self->data;
 	if (!bdata) return;
 	if (!bdata->isMoving) return;
+	if (is_paused()) return;
 
 	GFC_Vector3D s;
 	if (bdata->movingdir == 1 && bdata->currentFrame == bdata->frameMax) {
@@ -73,6 +76,11 @@ void block_update(Entity* self) {
 	blockData* bdata = self->data;
 	if (!bdata) return;
 	if (!bdata->isMoving) return;
+	if (get_editormode()) {
+		bdata->pos1 = self->position;
+		return;
+	}
+	if (is_paused()) return;
 	//slog("vx: %f, vy: %f, vz: %f", gfc_vector3d_to_slog(bdata->velocity));
 	if (bdata->movingdir == 1) {
 		gfc_vector3d_sub(self->position, self->position, bdata->velocity);
@@ -375,6 +383,10 @@ int block_draw(Entity* self) {
 		matrix,
 		color,
 		0);
+	if (get_editormode() && bdata->isMoving) {
+		gf3d_draw_edge_3d(gfc_edge3d_from_vectors(bdata->pos1, bdata->pos2), gfc_vector3d(0, 0, 0), gfc_vector3d(0, 0, 0), gfc_vector3d(1, 1, 1), 1, GFC_COLOR_YELLOW);
+	}
+	//slog("e: %i", get_editormode());
 }
 void revert_block_color(Entity* self) {
 	if (!self) return 0;
@@ -395,6 +407,12 @@ void revert_block_color(Entity* self) {
 		break;
 	case EFFECT_GATE_SLOWMO_ID:
 		self->colormod = GFC_COLOR_GREY;
+		break;
+	case CHECKPOINT_ID:
+		self->colormod = GFC_COLOR_BLUE;
+		break;
+	case FINISH_ID:
+		self->colormod = GFC_COLOR_RED;
 	}
 
 }
@@ -506,12 +524,12 @@ Entity* spawn_block(int id) {
 
 
 	}
-	bdata->surfaceType = SURFACE_WOOD;
+	//bdata->surfaceType = SURFACE_ROAD;
 
 	if (!block->touch) {
 		block->touch = surface_touch;
 	}
-	if (!block->update) {
+	if (!block->update && id!= CHECKPOINT_ID && id != FINISH_ID) {
 		block->update = block_touch_reset;
 	}
 
@@ -566,6 +584,14 @@ SJson* block_to_json(Entity* self) {
 		sj_object_insert(save, "rotation", sj_vector3d_new(tvec));
 	}
 	
+	if (bdata->isMoving) {
+		sj_object_insert(save, "moveto", sj_vector3d_new(bdata->pos2));
+	}
+
+	if (bdata->surfaceType) {
+		sj_object_insert(save, "surface", sj_new_int(bdata->surfaceType));
+	}
+
 	//save->get_string
 	//slog("%s", save->get_string(save)->text);
 	return save;
@@ -622,7 +648,14 @@ Uint8 bdata_get_node_id(Entity* self) {
 	return bdata->nodeid;
 }
 
-void make_moving_block(Entity* self, GFC_Vector3D pos2) {
+void bdata_set_surface(Entity* self, Uint8 surfaceType) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+	bdata->surfaceType = surfaceType;
+}
+
+GFC_Vector3D* make_moving_block(Entity* self, GFC_Vector3D pos2) {
 	if (!self) return;
 	blockData* bdata = self->data;
 	if (!bdata) return;
@@ -645,4 +678,17 @@ void make_moving_block(Entity* self, GFC_Vector3D pos2) {
 	//slog("vx: %f, vy: %f, vz: %f", gfc_vector3d_to_slog(bdata->velocity));
 	bdata->movingdir = 1;
 
+	return &bdata->pos2;
+
+}
+
+GFC_Vector3D get_block_velocity(Entity* self) {
+	if (!self) return;
+	blockData* bdata = self->data;
+	if (!bdata) return;
+	if (!bdata->isMoving) return gfc_vector3d(0, 0, 0);
+	GFC_Vector3D ret;
+	gfc_vector3d_scale(ret, bdata->velocity, bdata->movingdir * -1);
+	
+	return ret;
 }

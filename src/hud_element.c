@@ -57,12 +57,13 @@ void set_elements_state(Uint16 elementmask) {
 	if (elementmask & EDITOR_STATE) {
 		set_editormode(true);
 	}
-	else {
-		set_editormode(false);
-	}
+	//else {
+	//	set_editormode(false);
+	//}
 	if (elementmask & START_ELEMENT) {
 		entity_free_all();
 		set_pause(false);
+		set_editormode(false);
 	}
 	slog_all_elements();
 }

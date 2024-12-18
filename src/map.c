@@ -16,7 +16,7 @@
 mapData* load_map_from_cfg(const char* filename) {
 	SJson* SJmap, * a, *blocklist, *nodelist;
 	Uint8 start;
-	int nodeId;
+	int nodeId, surfaceType;
 	GFC_Vector3D offset = { 0 };
 
 	SJmap = sj_load(filename);
@@ -32,7 +32,9 @@ mapData* load_map_from_cfg(const char* filename) {
 	}
 
 	sj_object_get_value_as_int(SJmap, "mapID", &mdata->mapID);
-
+	GFC_TextLine *buffer = sj_object_get_value_as_string(SJmap, "title");
+	gfc_line_cpy(mdata->title, buffer);
+	
 	blocklist = sj_object_get_value(SJmap, "blocks");
 	nodelist = sj_object_get_value(SJmap, "nodes");
 	if (!blocklist) {
@@ -94,9 +96,11 @@ mapData* load_map_from_cfg(const char* filename) {
 		//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(block->position));
 		//GFC_HALF_PI;
 		//slog("id: %i, number: %i", id, i);
-		if (id == 1) {
-			make_moving_block(block, gfc_vector3d(0, 0, 0));
-		}
+		//if (id == 1) {
+		//	GFC_Vector3D vv;
+		//	gfc_vector3d_sub(vv, block->position, gfc_vector3d(0, 0, -20));
+		//	make_moving_block(block, vv);
+		//}
 		if (id == 5) {
 			mdata->totalCheckpoints++;
 		}
@@ -120,7 +124,13 @@ mapData* load_map_from_cfg(const char* filename) {
 			checkpointList[nodeId] = block;
 			slog("Block Nodeid: %i", nodeId);
 		}
-
+		GFC_Vector3D movetopos;
+		if (sj_object_get_vector3d(a, "moveto", &movetopos)) {
+			make_moving_block(block, movetopos);
+		}
+		if (sj_object_get_value_as_int(a, "surface", &surfaceType)) {
+			bdata_set_surface(block, surfaceType);
+		}
 	}
 	if (!mdata->startBlock && !get_editormode()) {
 		slog("Invalid map, no start found");
@@ -131,6 +141,7 @@ mapData* load_map_from_cfg(const char* filename) {
 	if (get_editormode()) {
 		c = UINT8_MAX;
 	}
+	slog("node max: %i", c);
 	//Entity* block;
 	//GFC_Vector3D grid;
 
@@ -182,7 +193,7 @@ mapData* load_map_from_cfg(const char* filename) {
 	return mdata;
 }
 
-int convert_current_entities_into_map(int id) {
+int convert_current_entities_into_map(int id, GFC_TextLine title) {
 	Entity* block;
 	SJson* sj, *sjtest, *blockar, *nodear;
 	int i;
@@ -190,8 +201,16 @@ int convert_current_entities_into_map(int id) {
 	delete_duplicate_blocks();
 
 	sj = sj_object_new();
-	sj_object_insert(sj, "title", sj_new_str("sample title"));
-
+	GFC_TextLine blank;
+	gfc_line_clear(blank);
+	if (gfc_line_cmp(title, blank) == 0) {
+		sj_object_insert(sj, "title", sj_new_str("sample title"));
+	}
+	else {
+		sj_object_insert(sj, "title", sj_new_str(title));
+	}
+	
+	
 
 	blockar = sj_array_new();
 	while (block = get_next_block()) {
@@ -249,6 +268,7 @@ mapData* load_empty_map(int mapID) {
 		return 0;
 	}
 	mdata->mapID = mapID;
+	node_system_init(UINT8_MAX);
 
 	Entity* stadium = entity_new();
 	stadium->model = gf3d_model_load("models/stadium.model");

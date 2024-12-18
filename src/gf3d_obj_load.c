@@ -47,7 +47,7 @@ int gf3d_obj_edge_test(ObjData* obj, GFC_Matrix4 offset, GFC_Edge3D e, GFC_Vecto
         NULL);
 }*/
 
-Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector4D* vlist, int *vlistc, GFC_Vector3D translation)
+Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_Vector3D* vlist, int *vlistc, GFC_Vector3D translation)
 {
     int i, j;
     Uint8 f = 0; //return flag
@@ -155,7 +155,7 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
             if (!vlist) continue;
             gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
             *vlistc += 1;
-            if (*vlistc == collisions_max) {
+            if (*vlistc == collisions_max-1) {
                 *vlistc = 0;
             }
             //slog("e1 hit");
@@ -165,7 +165,7 @@ Uint8 gf3d_obj_sphere_test(ObjData* obj, GFC_Matrix4 offset, GFC_Sphere s, GFC_V
             if (!vlist) continue;
             gfc_vector3d_set(vlist[*vlistc], abxac.x, abxac.y, abxac.z);
             *vlistc += 1;
-            if (*vlistc == collisions_max) {
+            if (*vlistc == collisions_max-1) {
                 *vlistc = 0;
             }
             //slog("e2 hit");

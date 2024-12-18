@@ -14,17 +14,62 @@
 #define FRICTION 0.005
 #define wheel_radius 1
 #define normal_force_mult 0.59
-#define REACTOR_UP_FORCE 0.03
+#define REACTOR_UP_FORCE 0.0216
 #define REACTOR_DOWN_FORCE 0.05
 #define TURNING_NEG_VELOCITY_FACTOR -0.013
 #define VOLUME_MULT 0.01
 
 
-#define replay_on 0
-#define ai_on 0
+#define replay_on 1
+#define ai_on 1
 
 
 void project(Entity* self, playerData* pdata, Entity* projectionEnt, playerData* projectionData);
+
+void changeCar(Entity* self, Uint8 car) {
+	if (!self) return;
+	playerData* pdata = self->data;
+	if (!pdata) return;
+
+	switch (car) {
+	case 0: //original car
+		pdata->maxGears = 4;
+		pdata->accelMult = 1;
+		pdata->handlingMult = 1;
+		pdata->tractionMult = 1;
+		self->colormod = GFC_COLOR_WHITE;
+		break;
+	case 1: //3 gears, easy to control
+		pdata->maxGears = 3;
+		pdata->accelMult = 1;
+		pdata->handlingMult = 1.5;
+		pdata->tractionMult = 1.5;
+		self->colormod = GFC_COLOR_GREEN;
+		break;
+	case 2: // high top speed car
+		pdata->maxGears = 8;
+		pdata->accelMult = 1.2;
+		pdata->handlingMult = 0.7;
+		pdata->tractionMult = 0.7;
+		self->colormod = GFC_COLOR_RED;
+		break;
+	case 3: //high acceleration
+		pdata->maxGears = 2;
+		pdata->accelMult = 1.4;
+		pdata->handlingMult = 1;
+		pdata->tractionMult = 1;
+		self->colormod = GFC_COLOR_BLUE;
+		break;
+	case 4: //drifty
+		pdata->maxGears = 5;
+		pdata->accelMult = 1.1;
+		pdata->handlingMult = 1.1;
+		pdata->tractionMult = 0.4;
+		self->colormod = GFC_COLOR_YELLOW;
+		break;
+	}
+	pdata->currentCar = car;
+}
 
 int ailogic(Entity* self, GFC_Vector3D nodepos) {
 	playerData* pdata;
@@ -139,6 +184,12 @@ int player_get_inputs(Entity* self) {
 	if (gfc_input_command_down("walkleft")) {
 		inputs |= key_left;
 	}
+	if (gfc_input_command_pressed("cyclecarup")) {
+		inputs |= key_cycle_up;
+	}
+	if (gfc_input_command_pressed("cyclecardown")) {
+		inputs |= key_cycle_down;
+	}
 	return inputs;
 }
 
@@ -193,10 +244,8 @@ void player_reset(Entity* self) {
 	pdata->effectReactorTime = 0;
 	pdata->effectSlowMoTime = 0;
 
-
 	self->position = mdata->startBlock->position;
 	self->rotation = mdata->startBlock->rotation;
-	
 	
 }
 /*GFC_Vector4D ToQuaternion(GFC_Vector3D angles);
@@ -210,6 +259,10 @@ void player_turn(Entity* self, float turnmult) {
 	if (pdata->effectSlowMoTime) {
 		turnmult *= SLOWMOFACTOR;
 	}
+	if (pdata->currentCar == 4) {
+		pdata->sliding = 1;
+	}
+	turnmult *= pdata->handlingMult;
 
 	if (pdata->currentNormal.x == 0 && pdata->currentNormal.y == 0 && pdata->currentNormal.z == 0) return;
 	
@@ -422,8 +475,13 @@ void player_sound(Entity* self) {
 		enginePitch = (pdata->RPM - rpmlower-div) / div;
 	}
 	GFC_Sound* engineSound = pdata->engineSound;
+	if (enginePitch < 0) {
+		enginePitch = 0;
+	}
+	else if (enginePitch > 10) {
+		enginePitch = 10;
+	}
 	engineSound += enginePitch;
-	//slog("pitch: %i", enginePitch);
 	float RPM = pdata->RPM;
 	if (RPM > 9999) {
 		RPM = 9999;
@@ -456,7 +514,7 @@ void player_think(Entity* self)
 
 	GFC_Vector3D dv = {0};
 
-	pdata->friction = FRICTION;
+	pdata->friction = FRICTION * pdata->tractionMult;
 
 	if (!pdata->gameState && pdata->playerType != playertype_ai) {
 		pdata->framecount++;
@@ -558,7 +616,7 @@ void player_think(Entity* self)
 
 	if ((key_down & inputs) && !pdata->gameState) {
 		pdata->sliding = 1;
-		pdata->friction += 0.2;
+		pdata->friction += 0.2*pdata->tractionMult;
 		//slog("yep");
 	}
 	if ((pdata->currentSurface & SURFACE_DIRT) || (pdata->currentSurface & SURFACE_P_GRASS)) {
@@ -574,13 +632,18 @@ void player_think(Entity* self)
 	}
 
 	if ((key_respawn & inputs) && !pdata->gameState) { //could remove the checks for gamestate
+		slog("respawn");
 		Entity* checkpointBlock = mdata->lastCheckpoint;
 		player_reset(self);
-		self->position = checkpointBlock->position;
-		self->rotation = checkpointBlock->rotation;
+		if (checkpointBlock) {
+			self->position = checkpointBlock->position;
+			self->rotation = checkpointBlock->rotation;
+		}
+		
 		if (pdata->playerType == playertype_ai) {
 			node_respawn_from_checkpoint();
 		}
+		slog("respawn");
 		return;
 	}
 
@@ -610,7 +673,7 @@ void player_think(Entity* self)
 		float RPM = pdata->RPM;
 		float x = (RPM - 4000) / 2000;
 		acc = 1 / (1.5 + x*x);
-		acc = acc * (5)*0.007 * surfaceMult;
+		acc = acc * (5)*0.007 * surfaceMult * pdata->accelMult;
 		//acc = 0.06 / sqrtf(gfc_vector3d_magnitude(pdata->positionVelocity) + 4);
 		gfc_vector3d_set_magnitude(&dv, acc);
 
@@ -664,6 +727,25 @@ void player_think(Entity* self)
 		}
 	}
 
+	if ((key_cycle_up & inputs) && !pdata->gameState) {
+		slog("up");
+		if (pdata->currentCar == 4) {
+			changeCar(self, 0);
+		}
+		else {
+			changeCar(self, pdata->currentCar + 1);
+		}
+	}
+	if ((key_cycle_down & inputs) && !pdata->gameState) {
+		slog("down");
+		if (pdata->currentCar == 0) {
+			changeCar(self, 4);
+		}
+		else {
+			changeCar(self, pdata->currentCar - 1);
+		}
+	}
+
 	//entity_check_collision(self);
 
 	//Add gravity force
@@ -689,7 +771,7 @@ void player_think(Entity* self)
 	else if (downmag < 0) {
 		downmag = 0;
 	}
-	if (downmag>0){
+	if (downmag>0 && !pdata->effectReactorTime){
 		gfc_vector3d_set_magnitude(&down, downmag);
 		apply_force(
 			force3d(gfc_vector3d(0, 0, 0),//pdata->relativePos[0],
@@ -719,8 +801,11 @@ void player_think(Entity* self)
 	int i, j, k, l;
 	int equalcount;
 	//GFC_Vector3D vlist[collisions_max];
-	GFC_Vector4D vlistlist[4][collisions_max];
-	memset(&vlistlist, 0, sizeof(GFC_Vector4D) * collisions_max * 4);
+	GFC_Vector3D vlistlist[4][collisions_max];
+	memset(&vlistlist, 0, sizeof(GFC_Vector3D) * collisions_max * 4);
+
+	GFC_Vector3D mlistlist[4][collisions_max];
+	memset(&mlistlist, 0, sizeof(GFC_Vector3D)* collisions_max * 4);
 
 	Force3D forceQueue[4 * collisions_max];
 	memset(&forceQueue, 0, sizeof(Force3D) * collisions_max * 4);
@@ -771,10 +856,14 @@ void player_think(Entity* self)
 	wheel = &projectionData.wheelFL;
 
 	for (i = 0; i < 4; i++, wheel++) {
-		check_player_collision(self, gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i]);
+		check_player_collision(self, gfc_sphere(wheel->x, wheel->y, wheel->z, wheel_radius),&vlistlist[i], &mlistlist[i]);
 		//slog("Wheel x: %f, y: %f, z: %f", wheel->x, wheel->y, wheel->z);
 	}
-
+	//for (i = 0; i < 4; i++) {
+	//	for (j = 0; j < collisions_max; j++) {
+			//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(mlistlist[i][j]));
+	//	}
+	//}
 	/*GFC_Vector3D* vlistpointer;
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < collisions_max; j++) {
@@ -802,6 +891,20 @@ void player_think(Entity* self)
 			}
 		}
 	}
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < collisions_max; j++) {
+			if (gfc_vector3d_compare(mlistlist[i][j], gfc_vector3d(0, 0, 0))) {
+				continue;
+			}
+			for (k = j + 1; k < collisions_max; k++) {
+				if (gfc_vector3d_compare(mlistlist[i][j], mlistlist[i][k])) {
+					gfc_vector3d_set(mlistlist[i][j], 0, 0, 0);
+					//slog("dupe removed");
+					break;
+				}
+			}
+		}
+	}
 
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < collisions_max; j++) {
@@ -810,10 +913,12 @@ void player_think(Entity* self)
 
 			//Since the force from vlist is supposed to be the direction of the normal force,
 			//We need to calculate the magnitude by using the player's current velocity
-			if (gfc_vector3d_magnitude(gfc_vector4dxyz(vlistlist[i][j])) == 0) {
+			if (gfc_vector3d_magnitude(vlistlist[i][j]) == 0) {
 				slog("div by zero");
 			}
-			float mag = gfc_vector3d_dot_product(finalv[i], vlistlist[i][j]) / gfc_vector3d_magnitude(gfc_vector4dxyz(vlistlist[i][j]));
+			//gfc_vector3d_sub(finalv[i], finalv[i], mlistlist[i][j]);
+
+			float mag = gfc_vector3d_dot_product(finalv[i], vlistlist[i][j]) / gfc_vector3d_magnitude(vlistlist[i][j]);
 			mag *= -normal_force_mult;
 			//mag = normal_force_mult;
 			equalcount = 1;
@@ -830,11 +935,47 @@ void player_think(Entity* self)
 
 			gfc_vector3d_set_magnitude(&vlistlist[i][j], mag);
 
+			//add moving block vel
+			equalcount = 1;
+			for (k = 0; k < 4; k++) {
+				if (k == i) continue;
+				for (l = 0; l < collisions_max; l++) {
+					if (gfc_vector3d_compare(mlistlist[i][j], mlistlist[k][l])) {
+						equalcount++;
+						break;
+					}
+				}
+			}
+			
+			//if (!(mlistlist[i][j].x == 0 && mlistlist[i][j].y == 0 && mlistlist[i][j].z == 0)) {
+			//	slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(mlistlist[i][j]));
+			//}
+			//slog("x: %f, y: %f, z: %f", gfc_vector3d_to_slog(mlistlist[i][j]));
+			//gfc_vector3d_scale(mlistlist[i][j], mlistlist[i][j], 0.75 / equalcount);
+			//if (i == 0) {
+				if (!(mlistlist[i][j].x == 0)) {
+					mlistlist[i][j].x -= finalv[i].x;
+					vlistlist[i][j].x += mlistlist[i][j].x;
+				}
+				if (!(mlistlist[i][j].y == 0)) {
+					mlistlist[i][j].y -= finalv[i].y;
+					vlistlist[i][j].y += mlistlist[i][j].y;
+				}
+				if (!(mlistlist[i][j].z == 0)) {
+					mlistlist[i][j].z *= 0.6;
+					//mlistlist[i][j].z -= finalv[i].z;
+					vlistlist[i][j].z += mlistlist[i][j].z;
+				}
+			//}
+			
+			
+
+
 			/*apply_force(
 				force3d(pdata->relativePos[i],
 					vlistlist[i][j]),
 				self);*/
-			GFC_Vector3D velement = gfc_vector4dxyz(vlistlist[i][j]);
+			GFC_Vector3D velement = vlistlist[i][j];
 			//GFC_Vector3D angles = {0};
 			//GFC_Matrix4 rotmatrix;
 			/*float theta = self->rotation.x;
@@ -875,7 +1016,7 @@ void player_think(Entity* self)
 			//temp += i;
 
 			//gfc_vector3d_sub(forigin, (*temp), self->position);
-			forceQueue[forceQueueC] = force3d(pdata->relativePos[i], gfc_vector4dxyz(vlistlist[i][j]));
+			forceQueue[forceQueueC] = force3d(pdata->relativePos[i], vlistlist[i][j]);
 			forceQueueC++;
 			//slog("hit #%i", forceQueueC);
 			
@@ -920,7 +1061,7 @@ void player_think(Entity* self)
 		surfaceGripMult *= 0;
 	}
 	if ((pdata->currentSurface & SURFACE_DIRT) || (pdata->currentSurface & SURFACE_P_GRASS)) {
-		surfaceGripMult *= 0.5;
+		surfaceGripMult *= 0.2;
 	}
 	float gripforcemag = gfc_vector3d_dot_product(gripForce, pdata->positionVelocity) * -0.1 * surfaceGripMult;
 	gfc_vector3d_set_magnitude(&gripForce, gripforcemag);
@@ -950,7 +1091,7 @@ void move_player(Entity* self)
 	rvel = pdata->rotationVelocity;
 	if (pdata->effectSlowMoTime) {
 		gfc_vector3d_scale(pvel, pvel, SLOWMOFACTOR);
-		gfc_vector3d_scale(rvel, rvel, SLOWMOFACTOR);
+		gfc_vector3d_scale(rvel, rvel, 1/SLOWMOFACTOR);
 	}
 	
 	gfc_vector3d_add(self->position, pvel, self->position);
@@ -1125,7 +1266,7 @@ void player_update(Entity* self)
 	}
 	
 	//slog("rpm: %i", pdata->RPM);
-	if (pdata->gear < 4) {
+	if (pdata->gear < pdata->maxGears) {
 		if (pdata->RPM > 6000) {
 			pdata->gear++;
 		}
@@ -1159,7 +1300,7 @@ int player_draw(Entity* self)
 	gf3d_model_draw(
 		model,	
 		matrix,
-		GFC_COLOR_WHITE,
+		self->colormod,
 		0);
 	GFC_Vector3D* wheel;
 	int i;
@@ -1290,5 +1431,8 @@ Entity* spawn_player(mapData* mdata, Uint8 playerType)
 		gfc_list_append(pdata->animationList, gf3d_model_load_full(buffer, "models/car/Car Texture 1.png"));
 	}
 	pdata->animationFrame = 20;
+
+	changeCar(player, 0);
+	slog("cp cont: %i", mdata->totalCheckpoints);
 	return player;
 }
